@@ -36,15 +36,36 @@ if (!$submission) {
 }
 
 // -------------------------------------------------------
-// Download PDF
+// Download PDF (attachment)
 // -------------------------------------------------------
 if (isset($_GET['download']) && $_GET['download'] == '1') {
     if (!empty($submission['pdf_path'])) {
         $pdfFile = PDF_PATH . DIRECTORY_SEPARATOR . basename($submission['pdf_path']);
         if (is_file($pdfFile)) {
             header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="envio_' . $subId . '.pdf"');
+            header('Content-Disposition: attachment; filename="autorizacao_envio_' . $subId . '.pdf"');
             header('Content-Length: ' . filesize($pdfFile));
+            header('Cache-Control: private, no-cache');
+            readfile($pdfFile);
+            exit;
+        }
+    }
+    setFlash('Arquivo PDF não encontrado.', 'error');
+    header('Location: ' . APP_URL . '/admin/submission-view.php?id=' . $subId);
+    exit;
+}
+
+// -------------------------------------------------------
+// Visualizar PDF inline (abre no navegador)
+// -------------------------------------------------------
+if (isset($_GET['view']) && $_GET['view'] == '1') {
+    if (!empty($submission['pdf_path'])) {
+        $pdfFile = PDF_PATH . DIRECTORY_SEPARATOR . basename($submission['pdf_path']);
+        if (is_file($pdfFile)) {
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="autorizacao_envio_' . $subId . '.pdf"');
+            header('Content-Length: ' . filesize($pdfFile));
+            header('Cache-Control: private, no-cache');
             readfile($pdfFile);
             exit;
         }
@@ -143,12 +164,20 @@ require_once __DIR__ . '/layout/header.php';
         <h2>Detalhes do Envio #<?= $subId ?></h2>
         <p><?= e($submission['form_title']) ?> — <?= formatDate($submission['created_at'], true) ?></p>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <?php if (!empty($submission['pdf_path'])): ?>
-            <a href="?id=<?= $subId ?>&download=1" class="btn btn-success">
+            <a href="?id=<?= $subId ?>&view=1" target="_blank" class="btn btn-primary"
+               title="Abre o PDF no navegador">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Visualizar PDF
+            </a>
+            <a href="?id=<?= $subId ?>&download=1" class="btn btn-success"
+               title="Baixa o arquivo PDF">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Baixar PDF
             </a>
+        <?php else: ?>
+            <span class="badge badge-gray" style="padding:8px 14px;font-size:12px;">PDF não gerado — use &ldquo;Regenerar PDF&rdquo;</span>
         <?php endif; ?>
         <a href="<?= $appUrl ?>/admin/submissions.php?form_id=<?= (int) $form['id'] ?>" class="btn btn-secondary">← Voltar</a>
     </div>
@@ -170,13 +199,86 @@ require_once __DIR__ . '/layout/header.php';
                     </tr>
                 </thead>
                 <tbody>
+                    <?php
+                    // Para formulários de autorização, exibe todos os campos do JSON
+                    $isPdvAuth = ($submission['pdf_template'] ?? '') === 'authorization';
+                    if ($isPdvAuth && !empty($submData)):
+                        $authLabels = [
+                            'nome_razao_social'      => 'Nome / Razão Social',
+                            'sexo'                   => 'Sexo',
+                            'data_nascimento'        => 'Data de Nascimento',
+                            'rg'                     => 'RG nº',
+                            'orgao_expedidor'        => 'Órgão Expedidor',
+                            'cpf'                    => 'CPF nº',
+                            'naturalidade'           => 'Naturalidade',
+                            'nacionalidade'          => 'Nacionalidade',
+                            'cnpj'                   => 'CNPJ nº',
+                            'nome_fantasia'          => 'Nome de Fantasia',
+                            'estado_civil'           => 'Estado Civil',
+                            'conjuge'                => 'Cônjuge',
+                            'telefones'              => 'Telefones',
+                            'endereco_residencial'   => 'Endereço Residencial',
+                            'bairro_residencial'     => 'Bairro Residencial',
+                            'cidade_uf_residencial'  => 'Cidade/UF Residencial',
+                            'cep_residencial'        => 'CEP Residencial',
+                            'telefone_fixo'          => 'Telefone Fixo',
+                            'celular'                => 'Celular / WhatsApp',
+                            'endereco_comercial'     => 'Endereço Comercial',
+                            'bairro_comercial'       => 'Bairro Comercial',
+                            'cidade_uf_comercial'    => 'Cidade/UF Comercial',
+                            'cep_comercial'          => 'CEP Comercial',
+                            'emails'                 => 'E-mail(s)',
+                            'tipo_imovel'            => 'Tipo do Imóvel',
+                            'situacao_imovel'        => 'Situação do Imóvel',
+                            'endereco_imovel'        => 'Endereço do Imóvel',
+                            'bairro_imovel'          => 'Bairro do Imóvel',
+                            'cidade_uf_imovel'       => 'Cidade/UF do Imóvel',
+                            'cep_imovel'             => 'CEP do Imóvel',
+                            'ponto_referencia'       => 'Ponto de Referência',
+                            'registro_imovel'        => 'Registro do Imóvel',
+                            'matricula_iptu'         => 'Matrícula de IPTU',
+                            'num_dormitorios'        => 'Dormitórios',
+                            'num_salas'              => 'Salas',
+                            'num_suites'             => 'Suítes',
+                            'garagens'               => 'Garagens',
+                            'area_privativa'         => 'Área Privativa (m²)',
+                            'tem_varanda'            => 'Tem Varanda?',
+                            'tem_elevador'           => 'Tem Elevador?',
+                            'lazer_completo'         => 'Lazer Completo?',
+                            'garagem_coberta'        => 'Garagem Coberta?',
+                            'obs_descricao'          => 'Obs. Descrição',
+                            'valor_minimo_venda'     => 'Valor Mínimo de Venda (R$)',
+                            'valor_minimo_extenso'   => 'Valor por Extenso',
+                            'obs_preco'              => 'Obs. Preço',
+                            'valor_condominio'       => 'Valor do Condomínio (R$)',
+                            'valor_condominio_extenso' => 'Condomínio por Extenso',
+                            'porcentagem_comissao'   => 'Comissão (%)',
+                            'prazo_exclusividade'    => 'Prazo de Exclusividade (dias)',
+                            'formas_pagamento'       => 'Formas de Pagamento',
+                            'nome_corretor'          => 'Nome do Corretor',
+                            'assinatura_contratante' => 'Assinatura Contratante',
+                            'assinatura_conjuge'     => 'Assinatura Cônjuge',
+                            'testemunha_1_nome'      => 'Testemunha 1 — Nome',
+                            'testemunha_1_cpf'       => 'Testemunha 1 — CPF',
+                            'testemunha_2_nome'      => 'Testemunha 2 — Nome',
+                            'testemunha_2_cpf'       => 'Testemunha 2 — CPF',
+                        ];
+                        foreach ($authLabels as $key => $label):
+                            $val = $submData[$key] ?? '';
+                            if ($val === '') continue;
+                    ?>
+                    <tr>
+                        <td style="font-weight:600;background:#fafbfc;"><?= e($label) ?></td>
+                        <td><?= nl2br(e((string) $val)) ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php else: ?>
                     <?php foreach ($fields as $field): ?>
                     <?php
                         $name  = $field['name'] ?? '';
                         $label = $field['label'] ?? $name;
                         $type  = $field['type']  ?? 'text';
                         $value = $submData[$name] ?? '—';
-
                         if ($type === 'checkbox') {
                             $value = $value == '1' ? 'Sim ✓' : 'Não';
                         }
@@ -186,6 +288,7 @@ require_once __DIR__ . '/layout/header.php';
                         <td><?= nl2br(e((string) $value)) ?></td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -238,13 +341,30 @@ require_once __DIR__ . '/layout/header.php';
         <div class="card mb-16">
             <div class="card-header"><h3 class="card-title">Ações</h3></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:8px;">
+
+                <?php if (!empty($submission['pdf_path'])): ?>
+                <!-- Ver / Baixar PDF -->
+                <a href="?id=<?= $subId ?>&view=1" target="_blank"
+                   class="btn btn-primary w-full" style="justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Visualizar PDF
+                </a>
+                <a href="?id=<?= $subId ?>&download=1"
+                   class="btn btn-success w-full" style="justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Baixar PDF
+                </a>
+                <hr class="divider" style="margin:2px 0;">
+                <?php endif; ?>
+
                 <!-- Regenerar PDF -->
                 <form method="POST" action="">
                     <?= csrfField() ?>
                     <input type="hidden" name="regen_pdf" value="1">
-                    <button type="submit" class="btn btn-secondary w-full" style="justify-content:center;">
+                    <button type="submit" class="btn <?= empty($submission['pdf_path']) ? 'btn-primary' : 'btn-secondary' ?> w-full"
+                            style="justify-content:center;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-                        Regenerar PDF
+                        <?= empty($submission['pdf_path']) ? 'Gerar PDF' : 'Regenerar PDF' ?>
                     </button>
                 </form>
 
