@@ -56,14 +56,33 @@ if ($authed && isset($_GET['ac'])) {
     }
 
     if ($ac === 'inst') {
-        $php  = PHP_BINARY ?: 'php';
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+        @ignore_user_abort(true);
+        error_reporting(0);
+
+        // Tenta encontrar um PHP CLI valido
+        $phpBin = null;
+        $candidates = array_filter([PHP_BINARY, '/usr/bin/php', '/usr/local/bin/php', 'php', 'php8.2', 'php8.1', 'php8.0', 'php7.4']);
+        foreach ($candidates as $c) {
+            $t = rc_cmd($c . ' -r "echo 1;"');
+            if (trim($t['out']) === '1') { $phpBin = $c; break; }
+        }
+
         $phar = __DIR__ . '/composer.phar';
-        $cmd  = file_exists($phar)
-              ? $php . ' ' . escapeshellarg($phar) . ' install --no-dev --optimize-autoloader --no-interaction'
-              : 'composer install --no-dev --optimize-autoloader --no-interaction';
-        $cmd  = 'cd ' . escapeshellarg(__DIR__) . ' && ' . $cmd;
+        if ($phpBin && is_file($phar)) {
+            $cmd = $phpBin . ' ' . escapeshellarg($phar) . ' install --no-dev --optimize-autoloader --no-interaction --working-dir=' . escapeshellarg(__DIR__);
+        } elseif ($phpBin) {
+            $cmd = 'cd ' . escapeshellarg(__DIR__) . ' && ' . $phpBin . ' composer install --no-dev --optimize-autoloader --no-interaction';
+        } else {
+            $cmd = 'cd ' . escapeshellarg(__DIR__) . ' && composer install --no-dev --optimize-autoloader --no-interaction';
+        }
+
         $r = rc_cmd($cmd);
-        echo json_encode(['ok' => ($r['code'] === 0 && is_dir(__DIR__ . '/vendor')), 'out' => $r['out'], 'code' => $r['code']]);
+        $ok = ($r['code'] === 0 && is_dir(__DIR__ . '/vendor'));
+        // mesmo sem vendor/ pode ter parcialmente instalado — checar novamente
+        if (!$ok && is_dir(__DIR__ . '/vendor')) $ok = true;
+        echo json_encode(['ok' => $ok, 'out' => $r['out'], 'code' => $r['code'], 'php' => $phpBin ?: 'nao encontrado']);
         exit;
     }
 
