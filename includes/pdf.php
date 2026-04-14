@@ -182,6 +182,7 @@ HTML;
 
 /**
  * Monta HTML do contrato de Autorização de Venda com Exclusividade.
+ * Replica o layout do documento físico da A4 Imobiliária.
  */
 function buildAuthorizationHTML(array $form, array $submission, array $data, array $settings): string
 {
@@ -192,19 +193,87 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
     $logoHtml    = buildLogoImg($logoPath, $appName);
     $submId      = (int) $submission['id'];
     $submDate    = formatDate($submission['created_at'] ?? date('Y-m-d H:i:s'));
-    $primaryColor = $settings['primary_color'] ?? '#2563EB';
 
-    // Campos específicos
-    $d = function (string $key, string $default = '_______________') use ($data): string {
-        return e(!empty($data[$key]) ? $data[$key] : $default);
+    // Helper: retorna valor do campo ou linha em branco
+    $d = function (string $key, string $default = '') use ($data): string {
+        $v = trim($data[$key] ?? '');
+        return e($v !== '' ? $v : $default);
     };
+    $blank = '&nbsp;';
 
-    $valorFormatado  = !empty($data['valor_minimo']) ? formatCurrency($data['valor_minimo']) : '_______________';
-    $prazo           = $d('prazo_exclusividade') . ' dias';
-    $comissao        = $d('comissao') . '%';
-    $dataAssinatura  = !empty($data['data_assinatura'])
-        ? formatDate($data['data_assinatura'])
-        : $submDate;
+    $prazo    = $d('prazo_exclusividade', '___');
+    $comissao = $d('porcentagem_comissao', '___');
+    $valorMinimo   = $d('valor_minimo_venda', '_______________');
+    $valorExtenso  = $d('valor_minimo_extenso');
+    $valorCondo    = $d('valor_condominio', '_______________');
+    $condoExtenso  = $d('valor_condominio_extenso');
+    $dataAssinatura = $submDate;
+
+    // Contratante
+    $nomeContratante  = $d('nome_razao_social');
+    $sexo             = $d('sexo');
+    $dataNasc         = $d('data_nascimento');
+    $rg               = $d('rg');
+    $orgaoExp         = $d('orgao_expedidor');
+    $cpf              = $d('cpf');
+    $naturalidade     = $d('naturalidade');
+    $nacionalidade    = $d('nacionalidade');
+    $cnpj             = $d('cnpj');
+    $nomeFant         = $d('nome_fantasia');
+    $estadoCivil      = $d('estado_civil');
+    $conjuge          = $d('conjuge');
+    $telefones        = $d('telefones');
+    $endRes           = $d('endereco_residencial');
+    $bairroRes        = $d('bairro_residencial');
+    $cidUfRes         = $d('cidade_uf_residencial');
+    $cepRes           = $d('cep_residencial');
+    $telFixo          = $d('telefone_fixo');
+    $celular          = $d('celular');
+    $endCom           = $d('endereco_comercial');
+    $bairroCom        = $d('bairro_comercial');
+    $cidUfCom         = $d('cidade_uf_comercial');
+    $cepCom           = $d('cep_comercial');
+    $emails           = $d('emails');
+    // Imóvel
+    $tipoImovel       = $d('tipo_imovel');
+    $situacaoImovel   = $d('situacao_imovel');
+    $endImovel        = $d('endereco_imovel');
+    $bairroImovel     = $d('bairro_imovel');
+    $cidUfImovel      = $d('cidade_uf_imovel');
+    $cepImovel        = $d('cep_imovel');
+    $pontoRef         = $d('ponto_referencia');
+    $registroImovel   = $d('registro_imovel');
+    $matriculaIptu    = $d('matricula_iptu');
+    // Descrição
+    $numDorm          = $d('num_dormitorios');
+    $numSalas         = $d('num_salas');
+    $numSuites        = $d('num_suites');
+    $garagens         = $d('garagens');
+    $areaPriv         = $d('area_privativa');
+    $temVaranda       = $d('tem_varanda');
+    $temElevador      = $d('tem_elevador');
+    $lazer            = $d('lazer_completo');
+    $garagemCob       = $d('garagem_coberta');
+    $obsDesc          = $d('obs_descricao', '');
+    // Condições
+    $obsPreco         = $d('obs_preco', '');
+    $formasPag        = $d('formas_pagamento');
+    // Assinaturas
+    $nomeCorretor     = $d('nome_corretor');
+    $test1Nome        = $d('testemunha_1_nome');
+    $test1Cpf         = $d('testemunha_1_cpf');
+    $test2Nome        = $d('testemunha_2_nome');
+    $test2Cpf         = $d('testemunha_2_cpf');
+
+    // Logo como base64 para o banner
+    $logoBannerHtml = '';
+    if (!empty($logoPath) && is_file($logoPath)) {
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($logoPath);
+        if (in_array($mime, ['image/jpeg','image/png','image/gif','image/webp'], true)) {
+            $b64 = base64_encode(file_get_contents($logoPath));
+            $logoBannerHtml = "<img src=\"data:{$mime};base64,{$b64}\" style=\"max-height:65px;max-width:120px;\">";
+        }
+    }
 
     return <<<HTML
 <!DOCTYPE html>
@@ -213,8 +282,8 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
 <meta charset="UTF-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'DejaVu Sans', sans-serif; font-size: 10.5px; color: #1e293b; background: #fff; line-height: 1.6; }
-  .page { padding: 28px 38px; }
+  body { font-family: 'DejaVu Sans', sans-serif; font-size: 9.5px; color: #1a2332; background: #fff; line-height: 1.5; }
+  .page { padding: 22px 30px; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid {$primaryColor}; padding-bottom: 12px; margin-bottom: 16px; }
   .header .brand { }
   .brand-name { font-size: 17px; font-weight: bold; color: {$primaryColor}; }
