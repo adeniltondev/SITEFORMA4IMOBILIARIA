@@ -20,49 +20,63 @@ foreach ($candidate in @('php', 'php.exe')) {
     } catch {}
 }
 
-# --- 2. Baixar PHP portable se nao encontrado ---
+# --- 2. Procurar PHP em locais comuns se nao encontrado no PATH ---
 if (-not $phpExe) {
-    $phpDir = "$dir\_php_tmp"
-    $phpZip = "$dir\_php_tmp.zip"
-
-    if (-not (Test-Path "$phpDir\php.exe")) {
-        Write-Host "PHP nao encontrado. Baixando PHP 8.2 portable..." -ForegroundColor Yellow
-        $phpUrl = "https://windows.php.net/downloads/releases/latest/php-8.2-nts-Win32-vs16-x64.zip"
-        try {
-            Invoke-WebRequest -Uri $phpUrl -OutFile $phpZip -UseBasicParsing
-        } catch {
-            # Fallback: tentar php 8.1
-            $phpUrl = "https://windows.php.net/downloads/releases/latest/php-8.1-nts-Win32-vs16-x64.zip"
-            Invoke-WebRequest -Uri $phpUrl -OutFile $phpZip -UseBasicParsing
+    $commonPaths = @(
+        "C:\xampp\php\php.exe",
+        "C:\xampp8\php\php.exe",
+        "C:\laragon\bin\php\php8.2\php.exe",
+        "C:\laragon\bin\php\php8.1\php.exe",
+        "C:\laragon\bin\php\php8.0\php.exe",
+        "C:\laragon\bin\php\php7.4\php.exe",
+        "C:\wamp64\bin\php\php8.2.0\php.exe",
+        "C:\wamp\bin\php\php8.1.0\php.exe",
+        "$env:ProgramFiles\php\php.exe",
+        "$env:ProgramFiles\PHP\php.exe",
+        "C:\php\php.exe",
+        "C:\php8\php.exe"
+    )
+    foreach ($p in $commonPaths) {
+        if (Test-Path $p) {
+            try {
+                $v = & $p -r "echo 1;" 2>$null
+                if ($v -eq '1') { $phpExe = $p; Write-Host "PHP encontrado: $p" -ForegroundColor Green; break }
+            } catch {}
         }
-        Write-Host "Extraindo PHP..." -ForegroundColor Yellow
-        Expand-Archive -Path $phpZip -DestinationPath $phpDir -Force
-        Remove-Item $phpZip -Force
-
-        # Habilitar extensoes necessarias no php.ini
-        $ini = "$phpDir\php.ini-development"
-        if (Test-Path $ini) {
-            $content = Get-Content $ini -Raw
-            $content = $content -replace ';extension=zip',     'extension=zip'
-            $content = $content -replace ';extension=mbstring','extension=mbstring'
-            $content = $content -replace ';extension=openssl', 'extension=openssl'
-            $content = $content -replace ';extension=curl',    'extension=curl'
-            $content = $content -replace ';extension=dom',     'extension=dom'
-            $content = $content -replace ';extension=fileinfo','extension=fileinfo'
-            # Adicionar extension_dir se nao tiver
-            if ($content -notmatch '^extension_dir') {
-                $content = $content -replace 'extension_dir = "ext"', 'extension_dir = "ext"'
-            }
-            Set-Content "$phpDir\php.ini" $content -Encoding UTF8
-        }
-        Write-Host "PHP pronto." -ForegroundColor Green
     }
-    $phpExe = "$phpDir\php.exe"
+}
+
+# --- 3. Tentar instalar PHP via winget se ainda nao encontrado ---
+if (-not $phpExe) {
+    Write-Host "PHP nao encontrado. Tentando instalar via winget..." -ForegroundColor Yellow
+    try {
+        winget install --id PHP.PHP.8.2 --silent --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
+        # Recarregar PATH
+        $env:Path = [System.Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path','User')
+        $v = & php -r "echo 1;" 2>$null
+        if ($v -eq '1') { $phpExe = 'php'; Write-Host "PHP instalado via winget." -ForegroundColor Green }
+    } catch {}
+}
+
+if (-not $phpExe) {
+    Write-Host ""
+    Write-Host "ERRO: PHP nao encontrado no sistema." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Opcoes:" -ForegroundColor Yellow
+    Write-Host "  1. Instale o XAMPP: https://www.apachefriends.org/pt_br/download.html" -ForegroundColor White
+    Write-Host "     Depois execute este script novamente."
+    Write-Host ""
+    Write-Host "  2. Instale o PHP direto: https://windows.php.net/download/" -ForegroundColor White
+    Write-Host "     Baixe 'PHP 8.2 VS16 x64 Non Thread Safe', extraia em C:\php\"
+    Write-Host "     Adicione C:\php\ ao PATH e execute este script novamente."
+    Write-Host ""
+    Read-Host "Pressione Enter para sair"
+    exit 1
 }
 
 Write-Host "PHP: $phpExe" -ForegroundColor Green
 
-# --- 3. Baixar composer.phar ---
+# --- 4. Baixar composer.phar ---
 $composerPhar = "$dir\composer.phar"
 if (-not (Test-Path $composerPhar)) {
     Write-Host "Baixando composer.phar..." -ForegroundColor Yellow
@@ -72,7 +86,7 @@ if (-not (Test-Path $composerPhar)) {
     Write-Host "composer.phar ja existe." -ForegroundColor Green
 }
 
-# --- 4. Rodar composer install ---
+# --- 5. Rodar composer install ---
 Write-Host ""
 Write-Host "Rodando composer install (pode demorar 1-3 minutos)..." -ForegroundColor Yellow
 Write-Host ""
@@ -90,7 +104,7 @@ if (-not (Test-Path "$dir\vendor")) {
 Write-Host ""
 Write-Host "vendor/ criado com sucesso!" -ForegroundColor Green
 
-# --- 5. Criar zip para upload ---
+# --- 6. Criar zip para upload ---
 $zipPath = "$dir\vendor_upload.zip"
 Write-Host "Compactando vendor/ para upload..." -ForegroundColor Yellow
 
