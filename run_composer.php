@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Instalador de dependencias via navegador (sem SSH)
  * ATENCAO: DELETE ESTE ARQUIVO APOS O USO!
