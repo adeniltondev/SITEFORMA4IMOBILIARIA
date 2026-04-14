@@ -275,6 +275,9 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
             $logoBannerHtml = "<img src=\"data:{$mime};base64,{$b64}\" style=\"max-height:65px;max-width:120px;\">";
         }
     }
+    $bannerLogoCell = $logoBannerHtml
+        ? "<div style=\"background:rgba(255,255,255,.12);padding:6px 8px;border-radius:4px;text-align:center;\">{$logoBannerHtml}</div>"
+        : "<div class=\"brand-box\"><span class=\"bname\">{$appName}</span><br><span class=\"bsub\">Imobili&aacute;ria</span></div>";
 
     return <<<HTML
 <!DOCTYPE html>
@@ -356,11 +359,7 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
   <div class="banner">
     <div class="banner-inner">
       <div class="banner-logo">
-        <?php if ($logoBannerHtml): ?>
-          <div style="background:rgba(255,255,255,.12);padding:6px 8px;border-radius:4px;text-align:center;">{$logoBannerHtml}</div>
-        <?php else: ?>
-          <div class="brand-box"><span class="bname">{$appName}</span><br><span class="bsub">Imobiliária</span></div>
-        <?php endif; ?>
+        {$bannerLogoCell}
       </div>
       <div class="banner-title">
         <h1>Autorização de Venda com Exclusividade</h1>
