@@ -1,403 +1,290 @@
-<?php
+﻿<?php
 /**
- * Instalador de dependências via navegador (sem SSH)
- * ATENÇÃO: DELETE ESTE ARQUIVO APÓS O USO!
- *
- * Acesse: https://seudominio.com.br/run_composer.php
+ * Instalador de dependencias via navegador (sem SSH)
+ * ATENCAO: DELETE ESTE ARQUIVO APOS O USO!
  */
 
-// ── Proteção básica por senha ────────────────────────────────
-define('INSTALLER_PASS', 'a4imob2026');     // Altere se quiser
+function es($v) { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 
-session_start();
-
-$authed = ($_SESSION['ci_auth'] ?? false);
-if (!$authed) {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['pass'] ?? '') === INSTALLER_PASS) {
-        $_SESSION['ci_auth'] = true;
-        header('Location: ' . $_SERVER['PHP_SELF']);
-        exit;
-    }
-    ?><!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Instalador</title>
-<style>
-  body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f1f5f9;}
-  .box{background:#fff;padding:32px;border-radius:10px;box-shadow:0 4px 24px rgba(0,0,0,.12);text-align:center;min-width:300px;}
-  h2{margin:0 0 20px;color:#1e293b;}
-  input{padding:10px 14px;border:1px solid #cbd5e1;border-radius:6px;width:100%;font-size:14px;box-sizing:border-box;}
-  button{margin-top:12px;width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;}
-  button:hover{background:#1d4ed8;}
-</style>
-</head>
-<body>
-<div class="box">
-  <h2>🔒 Instalador Composer</h2>
-  <form method="POST">
-    <input type="password" name="pass" placeholder="Senha de acesso" required autofocus>
-    <button type="submit">Entrar</button>
-  </form>
-</div>
-</body>
-</html><?php
-    exit;
-}
-
-// ── Ação solicitada ───────────────────────────────────────────
-$action = $_GET['action'] ?? 'status';
-$root   = __DIR__;
-
-// ── Funções utilitárias ───────────────────────────────────────
-function runCmd(string $cmd): array
-{
-    $output   = [];
-    $exitCode = -1;
-
-    if (function_exists('proc_open')) {
-        $desc  = [1 => ['pipe','w'], 2 => ['pipe','w']];
-        $pipes = [];
-        $proc  = proc_open($cmd, $desc, $pipes, null, null);
-        if (is_resource($proc)) {
-            $stdout   = stream_get_contents($pipes[1]);
-            $stderr   = stream_get_contents($pipes[2]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            $exitCode = proc_close($proc);
-            $output   = array_merge(
-                $stdout ? explode("\n", trim($stdout)) : [],
-                $stderr ? explode("\n", trim($stderr)) : []
-            );
-        }
-    } elseif (function_exists('exec')) {
-        exec($cmd . ' 2>&1', $output, $exitCode);
+function runCmd($cmd) {
+    $out = []; $code = -1;
+    if (function_exists('exec')) {
+        exec($cmd . ' 2>&1', $out, $code);
     } elseif (function_exists('shell_exec')) {
-        $out      = shell_exec($cmd . ' 2>&1');
-        $output   = $out ? explode("\n", trim($out)) : [];
-        $exitCode = 0;
+        $r = shell_exec($cmd . ' 2>&1');
+        $out = $r ? explode("\n", trim($r)) : [];
+        $code = 0;
     } else {
-        $output   = ['ERRO: Nenhuma função de execução disponível (exec/proc_open/shell_exec estão desabilitadas).'];
-        $exitCode = 1;
+        $out = ['ERRO: exec/shell_exec desabilitados.'];
+        $code = 1;
     }
-
-    return ['output' => $output, 'exit' => $exitCode];
+    return ['out' => $out, 'code' => $code];
 }
 
-function phpBin(): string
-{
-    // Tenta detectar o PHP CLI disponível
-    $candidates = [PHP_BINARY, 'php', 'php8.1', 'php8.0', 'php7.4'];
-    foreach ($candidates as $bin) {
-        if (is_executable($bin)) return $bin;
-        $r = runCmd($bin . ' -r "echo 1;" 2>/dev/null');
-        if (($r['output'][0] ?? '') === '1') return $bin;
+function phpBin() {
+    foreach ([PHP_BINARY, 'php', 'php8.2', 'php8.1', 'php8.0', 'php7.4'] as $b) {
+        $r = runCmd($b . ' -r "echo 1;"');
+        if (trim(implode('', $r['out'])) === '1') return $b;
     }
     return 'php';
 }
 
-function findComposer(): string
-{
-    global $root;
-    if (is_file($root . '/composer.phar')) return phpBin() . ' ' . escapeshellarg($root . '/composer.phar');
-    $r = runCmd('composer --version 2>/dev/null');
-    if (str_contains(implode('', $r['output']), 'Composer'))  return 'composer';
+function findComposer() {
+    $root = __DIR__;
+    if (is_file($root . '/composer.phar')) {
+        return phpBin() . ' ' . escapeshellarg($root . '/composer.phar');
+    }
+    $r = runCmd('composer --version');
+    if (strpos(implode('', $r['out']), 'Composer') !== false) return 'composer';
     return '';
 }
 
-// ── Processar ações ───────────────────────────────────────────
-$result = null;
+define('PASS', 'a4imob2026');
+define('CNAME', 'ci_ok');
+define('CVAL',  md5('a4imob2026' . 'forma4'));
 
-if ($action === 'download_composer') {
-    $target = $root . '/composer.phar';
-    if (is_file($target)) {
-        $result = ['ok' => true, 'msg' => 'composer.phar já existe.'];
-    } elseif (ini_get('allow_url_fopen')) {
-        $data = @file_get_contents('https://getcomposer.org/composer.phar');
-        if ($data && strlen($data) > 500000) {
-            file_put_contents($target, $data);
-            $result = ['ok' => true, 'msg' => 'composer.phar baixado com sucesso! (' . round(strlen($data)/1024) . ' KB)'];
-        } else {
-            $result = ['ok' => false, 'msg' => 'Falha ao baixar composer.phar. Tente fazer upload manual (ver instrução abaixo).'];
-        }
-    } else {
-        $result = ['ok' => false, 'msg' => 'allow_url_fopen está desabilitado. Faça upload manual do composer.phar.'];
-    }
-    header('Content-Type: application/json');
-    echo json_encode($result);
-    exit;
-}
+$authed = (isset($_COOKIE[CNAME]) && $_COOKIE[CNAME] === CVAL);
 
-if ($action === 'install') {
-    $composer = findComposer();
-    if (!$composer) {
-        header('Content-Type: application/json');
-        echo json_encode(['ok' => false, 'msg' => 'Composer não encontrado. Baixe o composer.phar primeiro.']);
+if (!$authed && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pass'])) {
+    if ($_POST['pass'] === PASS) {
+        setcookie(CNAME, CVAL, time() + 3600, '/', '', false, true);
+        header('Location: ' . $_SERVER['PHP_SELF']);
         exit;
     }
-    $cmd = $composer . ' install --no-dev --optimize-autoloader --no-interaction 2>&1';
-    $r   = runCmd('cd ' . escapeshellarg($root) . ' && ' . $cmd);
-    $ok  = $r['exit'] === 0 && is_dir($root . '/vendor');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => $ok, 'output' => $r['output'], 'exit' => $r['exit']]);
-    exit;
+    $loginErr = 'Senha incorreta.';
 }
 
-if ($action === 'self_delete') {
-    $me = __FILE__;
-    header('Content-Type: application/json');
-    unset($_SESSION['ci_auth']);
-    session_destroy();
-    if (unlink($me)) {
-        echo json_encode(['ok' => true, 'msg' => 'Arquivo excluído com sucesso!']);
-    } else {
-        echo json_encode(['ok' => false, 'msg' => 'Não foi possível excluir automaticamente. Delete manualmente pelo cPanel.']);
+if ($authed && isset($_GET['action'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    $root = __DIR__;
+    $act  = $_GET['action'];
+
+    if ($act === 'download_composer') {
+        $t = $root . '/composer.phar';
+        if (is_file($t)) { echo json_encode(['ok'=>true,'msg'=>'composer.phar ja existe!']); exit; }
+        if (!ini_get('allow_url_fopen')) { echo json_encode(['ok'=>false,'msg'=>'allow_url_fopen desabilitado. Faca upload manual.']); exit; }
+        $d = @file_get_contents('https://getcomposer.org/composer.phar');
+        if ($d && strlen($d) > 100000) {
+            file_put_contents($t, $d);
+            echo json_encode(['ok'=>true,'msg'=>'composer.phar baixado! (' . round(strlen($d)/1024) . ' KB)']);
+        } else {
+            echo json_encode(['ok'=>false,'msg'=>'Falha ao baixar. Faca upload manual pelo cPanel.']);
+        }
+        exit;
     }
+
+    if ($act === 'install') {
+        $c = findComposer();
+        if (!$c) { echo json_encode(['ok'=>false,'msg'=>'Composer nao encontrado.','out':[]]); exit; }
+        $cmd = 'cd ' . escapeshellarg($root) . ' && ' . $c . ' install --no-dev --optimize-autoloader --no-interaction';
+        $r = runCmd($cmd);
+        echo json_encode(['ok'=>($r['code']===0 && is_dir($root.'/vendor')),'out'=>$r['out'],'code'=>$r['code']]);
+        exit;
+    }
+
+    if ($act === 'self_delete') {
+        setcookie(CNAME, '', time()-3600, '/');
+        if (@unlink(__FILE__)) { echo json_encode(['ok'=>true,'msg'=>'Arquivo excluido!']); }
+        else { echo json_encode(['ok'=>false,'msg'=>'Nao foi possivel excluir. Delete pelo cPanel.']); }
+        exit;
+    }
+
+    if ($act === 'env') {
+        echo json_encode([
+            'php'     => PHP_VERSION,
+            'os'      => PHP_OS,
+            'exec'    => function_exists('exec')       ? 'ok' : 'disabled',
+            'shell'   => function_exists('shell_exec') ? 'ok' : 'disabled',
+            'fopen'   => ini_get('allow_url_fopen')    ? 'ok' : 'off',
+            'vendor'  => is_dir(__DIR__.'/vendor')     ? 'yes' : 'no',
+            'phar'    => is_file(__DIR__.'/composer.phar') ? 'yes' : 'no',
+        ]);
+        exit;
+    }
+
+    echo json_encode(['ok'=>false,'msg'=>'Acao invalida']);
     exit;
 }
 
-// ── Status ────────────────────────────────────────────────────
-$hasVendor      = is_dir($root . '/vendor/autoload.php') || is_file($root . '/vendor/autoload.php');
-$hasComposerPhar = is_file($root . '/composer.phar');
-$hasComposerSys  = (bool) findComposer();
-$phpVersion      = PHP_VERSION;
-$execAvail       = function_exists('proc_open') ? 'proc_open' : (function_exists('exec') ? 'exec' : (function_exists('shell_exec') ? 'shell_exec' : 'nenhuma'));
-$urlFopen        = ini_get('allow_url_fopen') ? 'Habilitado' : 'Desabilitado';
+$root = __DIR__;
+$hasVendor = is_dir($root.'/vendor');
+$hasPhar   = is_file($root.'/composer.phar');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Instalador Composer — Forma4</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Instalador</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',sans-serif;background:#f1f5f9;min-height:100vh;padding:30px 16px;}
-  .wrap{max-width:780px;margin:0 auto;}
-  h1{font-size:22px;color:#1e293b;margin-bottom:4px;}
-  .sub{color:#64748b;font-size:13px;margin-bottom:24px;}
-  .card{background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.07);padding:24px;margin-bottom:20px;}
-  .card h2{font-size:15px;font-weight:700;color:#1e293b;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-  .info-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;}
-  .info-row:last-child{border-bottom:none;}
-  .info-row .label{color:#64748b;}
-  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;}
-  .ok{background:#dcfce7;color:#15803d;}
-  .warn{background:#fef9c3;color:#854d0e;}
-  .err{background:#fee2e2;color:#b91c1c;}
-  .step{display:flex;align-items:flex-start;gap:16px;padding:16px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:12px;}
-  .step-num{width:32px;height:32px;background:#2563eb;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
-  .step-num.done{background:#16a34a;}
-  .step h3{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px;}
-  .step p{font-size:12.5px;color:#64748b;line-height:1.6;}
-  .btn{padding:10px 20px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s;}
-  .btn:hover{opacity:.85;}
-  .btn-blue{background:#2563eb;color:#fff;}
-  .btn-green{background:#16a34a;color:#fff;}
-  .btn-red{background:#dc2626;color:#fff;}
-  .btn-gray{background:#e2e8f0;color:#374151;}
-  .btn:disabled{opacity:.45;cursor:not-allowed;}
-  .log{background:#0f172a;color:#94a3b8;font-family:monospace;font-size:11.5px;padding:14px;border-radius:6px;min-height:60px;max-height:320px;overflow-y:auto;white-space:pre-wrap;margin-top:12px;display:none;}
-  .log.show{display:block;}
-  .log .line-ok{color:#86efac;}
-  .log .line-err{color:#fca5a5;}
-  .progress{display:flex;align-items:center;gap:10px;margin-top:12px;display:none;}
-  .spinner{width:18px;height:18px;border:2px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .alert-success{background:#dcfce7;border:1px solid #bbf7d0;color:#15803d;padding:12px 16px;border-radius:7px;font-size:13px;margin-top:12px;display:none;}
-  .alert-error{background:#fee2e2;border:1px solid #fecaca;color:#b91c1c;padding:12px 16px;border-radius:7px;font-size:13px;margin-top:12px;display:none;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f1f5f9;min-height:100vh;padding:24px 12px}
+.w{max-width:700px;margin:0 auto}
+h1{font-size:20px;color:#1e293b;margin-bottom:4px}
+.sub{color:#64748b;font-size:13px;margin-bottom:20px}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+.card h2{font-size:14px;font-weight:700;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.row:last-child{border-bottom:none}
+.lbl{color:#64748b}
+.b{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.ok{background:#dcfce7;color:#15803d}.warn{background:#fef9c3;color:#854d0e}.err{background:#fee2e2;color:#b91c1c}
+.btn{padding:10px 18px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+.blue{background:#2563eb;color:#fff}.green{background:#16a34a;color:#fff}
+.red{background:#dc2626;color:#fff}.gray{background:#e2e8f0;color:#374151}
+.bw{display:block;width:100%;margin-bottom:8px;text-align:center}
+.log{background:#0f172a;color:#94a3b8;font-family:monospace;font-size:11px;padding:12px;border-radius:6px;max-height:260px;overflow-y:auto;white-space:pre-wrap;margin-top:10px;display:none}
+.log.s{display:block}
+.g{color:#86efac}.r{color:#fca5a5}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.msg{padding:10px 14px;border-radius:6px;font-size:13px;margin-top:10px;display:none}
+.mok{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.merr{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-size:12px}
+.lb{max-width:340px;margin:60px auto}
+.lb h2{text-align:center;margin-bottom:16px;font-size:20px}
+.lb input{width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;margin-bottom:10px}
+.lb .eerr{color:#dc2626;font-size:13px;text-align:center;margin-bottom:10px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>⚙️ Instalador de Dependências</h1>
-  <p class="sub">Instala DomPDF e PHPMailer via Composer — sem SSH. <strong>Delete este arquivo após concluir!</strong></p>
+<div class="w">
 
-  <!-- Status do ambiente -->
-  <div class="card">
-    <h2>📋 Status do Ambiente</h2>
-    <div class="info-row">
-      <span class="label">Versão do PHP</span>
-      <span class="badge <?= version_compare($phpVersion, '7.4', '>=') ? 'ok' : 'err' ?>"><?= e_s($phpVersion) ?></span>
-    </div>
-    <div class="info-row">
-      <span class="label">Pasta <code>vendor/</code></span>
-      <span class="badge <?= $hasVendor ? 'ok' : 'warn' ?>"><?= $hasVendor ? '✓ Instalada' : '✗ Não encontrada' ?></span>
-    </div>
-    <div class="info-row">
-      <span class="label"><code>composer.phar</code> na raiz</span>
-      <span class="badge <?= $hasComposerPhar ? 'ok' : 'warn' ?>"><?= $hasComposerPhar ? '✓ Presente' : '✗ Ausente' ?></span>
-    </div>
-    <div class="info-row">
-      <span class="label">Composer no sistema</span>
-      <span class="badge <?= $hasComposerSys ? 'ok' : 'warn' ?>"><?= $hasComposerSys ? '✓ Disponível' : '✗ Não encontrado' ?></span>
-    </div>
-    <div class="info-row">
-      <span class="label">Funções de execução</span>
-      <span class="badge <?= $execAvail !== 'nenhuma' ? 'ok' : 'err' ?>"><?= e_s($execAvail) ?></span>
-    </div>
-    <div class="info-row">
-      <span class="label"><code>allow_url_fopen</code></span>
-      <span class="badge <?= $urlFopen === 'Habilitado' ? 'ok' : 'warn' ?>"><?= $urlFopen ?></span>
-    </div>
-  </div>
+<?php if (!$authed): ?>
+<div class="lb card">
+  <h2>Instalador Composer</h2>
+  <?php if (!empty($loginErr)): ?><div class="eerr"><?= es($loginErr) ?></div><?php endif; ?>
+  <form method="POST">
+    <input type="password" name="pass" placeholder="Senha de acesso" autofocus required>
+    <button class="btn blue" style="width:100%;padding:11px" type="submit">Entrar</button>
+  </form>
+</div>
 
-  <?php if ($hasVendor): ?>
-  <div class="card" style="background:#dcfce7;border:1px solid #bbf7d0;">
-    <h2 style="color:#15803d;">✅ Dependências já instaladas!</h2>
-    <p style="font-size:13px;color:#166534;">A pasta <code>vendor/</code> existe. O sistema está pronto para funcionar.</p>
-    <p style="font-size:13px;color:#166534;margin-top:8px;"><strong>Clique em "Excluir este arquivo" abaixo por segurança.</strong></p>
-  </div>
-  <?php else: ?>
+<?php else: ?>
+<h1>Instalador de Dependencias</h1>
+<p class="sub">Instala DomPDF + PHPMailer via Composer sem SSH. <strong>Exclua apos usar!</strong></p>
 
-  <!-- Passo 1: Baixar composer.phar -->
-  <div class="card">
-    <h2>📦 Passo 1 — Obter o Composer</h2>
+<div class="card">
+  <h2>Status</h2>
+  <div class="row"><span class="lbl">PHP</span><span class="b <?= version_compare(PHP_VERSION,'7.4','>=') ? 'ok':'err' ?>"><?= es(PHP_VERSION) ?></span></div>
+  <div class="row"><span class="lbl">vendor/</span><span class="b <?= $hasVendor ? 'ok':'warn' ?>"><?= $hasVendor ? 'Instalada':'Ausente' ?></span></div>
+  <div class="row"><span class="lbl">composer.phar</span><span class="b <?= $hasPhar ? 'ok':'warn' ?>"><?= $hasPhar ? 'Presente':'Ausente' ?></span></div>
+  <button class="btn gray" style="margin-top:10px" onclick="checkEnv()">Checar ambiente</button>
+  <div class="log" id="logEnv"></div>
+</div>
 
-    <div class="step">
-      <div class="step-num <?= $hasComposerPhar || $hasComposerSys ? 'done' : '' ?>">
-        <?= $hasComposerPhar || $hasComposerSys ? '✓' : '1' ?>
-      </div>
-      <div style="flex:1">
-        <h3>Opção A — Download automático</h3>
-        <p>Baixa o <code>composer.phar</code> do site oficial direto para o servidor.</p>
-        <button class="btn btn-blue" id="btnDownload" style="margin-top:10px;"
-                <?= $hasComposerPhar ? 'disabled' : '' ?>>
-          <?= $hasComposerPhar ? '✓ Já baixado' : '⬇ Baixar composer.phar' ?>
-        </button>
-        <div class="progress" id="progDownload"><div class="spinner"></div><span>Baixando...</span></div>
-        <div class="alert-success" id="okDownload"></div>
-        <div class="alert-error"   id="errDownload"></div>
-      </div>
-    </div>
+<?php if ($hasVendor): ?>
+<div class="card" style="border:2px solid #bbf7d0">
+  <h2 style="color:#15803d">Dependencias ja instaladas!</h2>
+  <p style="font-size:13px;color:#166534">A pasta vendor/ existe. O sistema esta pronto.<br>Exclua este arquivo por seguranca.</p>
+</div>
+<?php else: ?>
 
-    <div class="step" style="margin-bottom:0;">
-      <div class="step-num">B</div>
-      <div>
-        <h3>Opção B — Upload manual (se A falhar)</h3>
-        <p>
-          1. Acesse <a href="https://getcomposer.org/composer.phar" target="_blank">getcomposer.org/composer.phar</a> e baixe o arquivo.<br>
-          2. No <strong>cPanel → Gerenciador de Arquivos</strong>, vá para <code>public_html/</code>.<br>
-          3. Faça upload do <code>composer.phar</code> na raiz do projeto.<br>
-          4. Volte aqui e siga para o Passo 2.
-        </p>
-      </div>
-    </div>
-  </div>
+<div class="card">
+  <h2>Passo 1 - Obter o Composer</h2>
+  <p style="font-size:13px;color:#64748b;margin-bottom:14px">Opcao A: download automatico</p>
+  <button class="btn blue" id="btnDl" onclick="dlComposer()" <?= $hasPhar ? 'disabled' : '' ?>>
+    <?= $hasPhar ? 'composer.phar ja existe' : 'Baixar composer.phar' ?>
+  </button>
+  <div class="msg mok"  id="okDl"></div>
+  <div class="msg merr" id="errDl"></div>
+  <hr style="margin:16px 0;border:none;border-top:1px solid #e2e8f0">
+  <p style="font-size:13px;color:#64748b;margin-bottom:8px"><strong>Opcao B (manual):</strong></p>
+  <p style="font-size:12.5px;color:#64748b;line-height:1.8">
+    1. Baixe: <a href="https://getcomposer.org/composer.phar" target="_blank">getcomposer.org/composer.phar</a><br>
+    2. cPanel → Gerenciador de Arquivos → public_html/ → Upload → envie composer.phar<br>
+    3. Recarregue a pagina e va para o Passo 2
+  </p>
+</div>
 
-  <!-- Passo 2: Instalar -->
-  <div class="card">
-    <h2>🚀 Passo 2 — Instalar Dependências</h2>
-    <p style="font-size:13px;color:#64748b;margin-bottom:16px;">
-      Executa <code>composer install --no-dev --optimize-autoloader</code> no servidor.<br>
-      Isso instala <strong>DomPDF</strong> e <strong>PHPMailer</strong> na pasta <code>vendor/</code>.
-    </p>
-    <button class="btn btn-green" id="btnInstall">▶ Executar Composer Install</button>
-    <div class="progress" id="progInstall"><div class="spinner"></div><span>Instalando dependências... (pode levar 1-3 minutos)</span></div>
-    <div class="log" id="logInstall"></div>
-    <div class="alert-success" id="okInstall"></div>
-    <div class="alert-error"   id="errInstall"></div>
-  </div>
+<div class="card">
+  <h2>Passo 2 - Instalar Dependencias</h2>
+  <p style="font-size:13px;color:#64748b;margin-bottom:14px">
+    Executa <code>composer install --no-dev --optimize-autoloader</code><br>
+    Instala DomPDF (PDF) e PHPMailer (e-mail) na pasta vendor/
+  </p>
+  <button class="btn green" id="btnInst" onclick="doInstall()">Executar Composer Install</button>
+  <div class="msg mok"  id="okInst"></div>
+  <div class="msg merr" id="errInst"></div>
+  <div class="log" id="logInst"></div>
+</div>
 
-  <?php endif; ?>
+<div class="card" style="border:1px dashed #94a3b8">
+  <h2>Alternativa - Instalar no PC e enviar pelo cPanel</h2>
+  <p style="font-size:13px;color:#374151;line-height:1.9">
+    1. Instale Composer no Windows: <a href="https://getcomposer.org/Composer-Setup.exe" target="_blank">getcomposer.org/Composer-Setup.exe</a><br>
+    2. Abra o CMD:<br>
+    &nbsp;&nbsp;<code>cd "C:\Users\User\Documents\SITEFORMA4IMOBILIARIA"</code><br>
+    &nbsp;&nbsp;<code>composer install --no-dev --optimize-autoloader</code><br>
+    3. Sera criada a pasta <code>vendor/</code> no PC<br>
+    4. Comprima a pasta vendor/ em um .zip<br>
+    5. cPanel → Gerenciador de Arquivos → public_html/ → Upload → envie o zip → Extrair
+  </p>
+</div>
 
-  <!-- Passo 3: Excluir arquivo -->
-  <div class="card" style="border:2px solid #fecaca;">
-    <h2 style="color:#dc2626;">🗑️ Passo 3 — Excluir este arquivo (OBRIGATÓRIO)</h2>
-    <p style="font-size:13px;color:#64748b;margin-bottom:16px;">
-      Por segurança, este arquivo deve ser excluído após a instalação.
-      Qualquer pessoa com a URL pode executar comandos no servidor!
-    </p>
-    <button class="btn btn-red" id="btnDelete">🗑 Excluir run_composer.php</button>
-    <div class="alert-success" id="okDelete"></div>
-    <div class="alert-error"   id="errDelete"></div>
-  </div>
+<?php endif; ?>
 
+<div class="card" style="border:2px solid #fecaca">
+  <h2 style="color:#dc2626">Passo Final - Excluir este arquivo (OBRIGATORIO)</h2>
+  <p style="font-size:13px;color:#64748b;margin-bottom:14px">Este arquivo permite executar comandos no servidor. Exclua imediatamente apos usar.</p>
+  <button class="btn red" onclick="deleteSelf()">Excluir run_composer.php</button>
+  <div class="msg mok"  id="okDel"></div>
+  <div class="msg merr" id="errDel"></div>
+</div>
+
+<?php endif; ?>
 </div>
 
 <script>
-function show(id)  { document.getElementById(id).style.display = 'block'; }
-function hide(id)  { document.getElementById(id).style.display = 'none'; }
-function setText(id, txt) { document.getElementById(id).innerHTML = txt; show(id); }
+function sh(id,txt,cls){var e=document.getElementById(id);e.innerHTML=txt;e.className='msg '+cls;e.style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+async function api(a){var r=await fetch('?action='+a);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
 
-async function doFetch(url) {
-    const r = await fetch(url);
-    return await r.json();
+async function dlComposer(){
+  var btn=document.getElementById('btnDl');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Baixando...';
+  hide('okDl');hide('errDl');
+  try{var d=await api('download_composer');
+    if(d.ok){sh('okDl','OK: '+d.msg,'mok');btn.innerHTML='Baixado!';}
+    else{sh('errDl','Erro: '+d.msg,'merr');btn.disabled=false;btn.innerHTML='Baixar composer.phar';}
+  }catch(e){sh('errDl','Erro: '+e.message,'merr');btn.disabled=false;btn.innerHTML='Baixar composer.phar';}
 }
 
-// Download composer.phar
-document.getElementById('btnDownload').addEventListener('click', async function() {
-    this.disabled = true;
-    hide('okDownload'); hide('errDownload');
-    show('progDownload');
-    try {
-        const res = await doFetch('?action=download_composer');
-        hide('progDownload');
-        if (res.ok) { setText('okDownload', '✅ ' + res.msg); }
-        else        { setText('errDownload', '❌ ' + res.msg); this.disabled = false; }
-    } catch(e) {
-        hide('progDownload');
-        setText('errDownload', '❌ Erro de rede: ' + e.message);
-        this.disabled = false;
+async function doInstall(){
+  var btn=document.getElementById('btnInst');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Instalando... (1-3 min)';
+  hide('okInst');hide('errInst');
+  document.getElementById('logInst').className='log';
+  try{
+    var d=await api('install');
+    if(d.out&&d.out.length){
+      var lg=document.getElementById('logInst');
+      lg.innerHTML=d.out.map(l=>'<span class="'+((/error|err:|fail|fatal/i.test(l))?'r':'g')+'">'+l.replace(/</g,'&lt;')+'</span>').join('\n');
+      lg.className='log s';
     }
-});
+    if(d.ok){sh('okInst','Instalacao concluida! vendor/ criado. Agora exclua este arquivo.','mok');btn.innerHTML='Instalado!';}
+    else{sh('errInst','Falha (codigo '+d.code+'). Veja o log. Use a alternativa manual.','merr');btn.disabled=false;btn.innerHTML='Tentar Novamente';}
+  }catch(e){sh('errInst','Erro: '+e.message,'merr');btn.disabled=false;btn.innerHTML='Executar Composer Install';}
+}
 
-// Composer install
-document.getElementById('btnInstall').addEventListener('click', async function() {
-    this.disabled = true;
-    hide('okInstall'); hide('errInstall');
-    document.getElementById('logInstall').classList.remove('show');
-    show('progInstall');
-    try {
-        const res = await doFetch('?action=install');
-        hide('progInstall');
-        const log = document.getElementById('logInstall');
-        if (res.output && res.output.length) {
-            log.innerHTML = res.output.map(l => {
-                const cls = (l.includes('Error') || l.includes('error') || l.includes('failed')) ? 'line-err' : 'line-ok';
-                return '<span class="' + cls + '">' + l.replace(/</g,'&lt;') + '</span>';
-            }).join('\n');
-            log.classList.add('show');
-        }
-        if (res.ok) {
-            setText('okInstall', '✅ Instalação concluída! Pasta vendor/ criada. Agora exclua este arquivo.');
-        } else {
-            setText('errInstall', '❌ Falha (exit ' + res.exit + '). Veja o log acima. Tente a alternativa manual abaixo.');
-            setText('errInstall', document.getElementById('errInstall').innerHTML +
-                '<br><br><strong>Alternativa manual (sem Composer no servidor):</strong><br>' +
-                '1. No seu <strong>PC Windows</strong>, execute:<br>' +
-                '<code>cd C:\\Users\\User\\Documents\\SITEFORMA4IMOBILIARIA && composer install --no-dev</code><br>' +
-                '2. Comprima a pasta <code>vendor/</code> em um .zip<br>' +
-                '3. Envie pelo cPanel → Gerenciador de Arquivos → Extrair em public_html/');
-            this.disabled = false;
-        }
-    } catch(e) {
-        hide('progInstall');
-        setText('errInstall', '❌ Erro: ' + e.message);
-        this.disabled = false;
-    }
-});
+async function deleteSelf(){
+  if(!confirm('Excluir run_composer.php?'))return;
+  try{
+    var d=await api('self_delete');
+    if(d.ok){sh('okDel',d.msg,'mok');setTimeout(()=>location.href='/admin/index.php',2000);}
+    else{sh('errDel',d.msg+' Delete pelo cPanel manualmente.','merr');}
+  }catch(e){sh('errDel','Exclua manualmente pelo cPanel.','merr');}
+}
 
-// Self delete
-document.getElementById('btnDelete').addEventListener('click', async function() {
-    if (!confirm('Confirma exclusão de run_composer.php?')) return;
-    this.disabled = true;
-    try {
-        const res = await doFetch('?action=self_delete');
-        if (res.ok) {
-            setText('okDelete', '✅ ' + res.msg + ' Redirecionando para o painel...');
-            setTimeout(() => window.location.href = '/admin/index.php', 2000);
-        } else {
-            setText('errDelete', '⚠️ ' + res.msg);
-        }
-    } catch(e) {
-        setText('errDelete', '❌ Erro: ' + e.message);
-    }
-});
+async function checkEnv(){
+  try{
+    var d=await api('env');
+    var lg=document.getElementById('logEnv');
+    lg.innerHTML=Object.entries(d).map(([k,v])=>'<span class="g">'+k+':</span> '+v).join('\n');
+    lg.className='log s';
+  }catch(e){alert('Erro: '+e.message);}
+}
 </script>
 </body>
 </html>
-<?php
-
-function e_s(string $v): string
-{
-    return htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
-}
