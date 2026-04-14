@@ -12,9 +12,9 @@
 // BANCO DE DADOS
 // ============================================================
 define('DB_HOST',    'localhost');        // Servidor MySQL (geralmente localhost no cPanel)
-define('DB_USER',    'seu_usuario_db');  // Usuário do banco
-define('DB_PASS',    'sua_senha_db');    // Senha do banco
-define('DB_NAME',    'seu_banco_db');    // Nome do banco de dados
+define('DB_USER',    'autorizacaoa4imo_dsaldja');  // Usuário do banco
+define('DB_PASS',    'Vlgd!MA0c$3&%dKy');    // Senha do banco
+define('DB_NAME',    'autorizacaoa4imo_formasdac');    // Nome do banco de dados
 define('DB_CHARSET', 'utf8mb4');
 
 // ============================================================
