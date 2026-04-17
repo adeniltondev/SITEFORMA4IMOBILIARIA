@@ -35,6 +35,7 @@ define('APP_PATH',    dirname(__DIR__));
 define('UPLOAD_PATH', APP_PATH . DIRECTORY_SEPARATOR . 'uploads');
 define('PDF_PATH',    UPLOAD_PATH . DIRECTORY_SEPARATOR . 'pdfs');
 define('LOGO_PATH',   UPLOAD_PATH . DIRECTORY_SEPARATOR . 'logos');
+define('DOCS_PATH',   UPLOAD_PATH . DIRECTORY_SEPARATOR . 'docs');
 
 // ============================================================
 // SESSÃO
@@ -50,5 +51,15 @@ define('CSRF_TOKEN_NAME', 'csrf_token');
 // ============================================================
 // UPLOAD
 // ============================================================
-define('MAX_UPLOAD_SIZE',    2 * 1024 * 1024); // 2 MB
+define('MAX_UPLOAD_SIZE',    10 * 1024 * 1024); // 10 MB
 define('ALLOWED_IMG_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+define('ALLOWED_DOC_TYPES', [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+]);

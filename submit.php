@@ -58,6 +58,34 @@ foreach ($fields as $field) {
     $type     = $field['type'] ?? 'text';
     $required = !empty($field['required']);
 
+    // ---- Campo de arquivo ----
+    if ($type === 'file') {
+        $uploadedFile = $_FILES[$name] ?? null;
+        $hasFile      = $uploadedFile && $uploadedFile['error'] === UPLOAD_ERR_OK && $uploadedFile['size'] > 0;
+
+        if ($required && !$hasFile) {
+            $hasErrors = true;
+            $errors[]  = ($field['label'] ?? $name) . ' é obrigatório.';
+            $submData[$name] = '';
+            continue;
+        }
+
+        if ($hasFile) {
+            $savedName = uploadFile($uploadedFile, DOCS_PATH, ALLOWED_DOC_TYPES);
+            if ($savedName === false) {
+                $hasErrors = true;
+                $errors[]  = 'Arquivo "' . ($field['label'] ?? $name) . '" inválido ou muito grande (máx. 10 MB).';
+                $submData[$name] = '';
+            } else {
+                // Salva o caminho relativo ao diretório uploads
+                $submData[$name] = 'docs/' . $savedName;
+            }
+        } else {
+            $submData[$name] = '';
+        }
+        continue;
+    }
+
     $rawValue = $_POST[$name] ?? '';
 
     // Sanitiza conforme tipo

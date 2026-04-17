@@ -42,6 +42,15 @@ $primaryColor = e($settings['primary_color'] ?? '#2563EB');
 
 // Mostra estado de sucesso quando redirecionado após envio
 $submitted = !empty($_GET['sent']) && (int) $_GET['sent'] === 1;
+
+// Verifica se algum campo é do tipo file (para definir enctype correto)
+$hasFileField = false;
+foreach ($fields as $f) {
+    if (($f['type'] ?? '') === 'file') {
+        $hasFileField = true;
+        break;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -84,7 +93,9 @@ $submitted = !empty($_GET['sent']) && (int) $_GET['sent'] === 1;
             </div>
 
             <!-- Formulário principal -->
-            <form id="publicForm" method="POST" action="<?= $appUrl ?>/submit.php" novalidate <?= $submitted ? 'style="display:none;"' : '' ?>>
+            <form id="publicForm" method="POST" action="<?= $appUrl ?>/submit.php"
+                  <?= $hasFileField ? 'enctype="multipart/form-data"' : '' ?>
+                  novalidate <?= $submitted ? 'style="display:none;"' : '' ?>>
                 <input type="hidden" name="form_id" value="<?= (int) $form['id'] ?>">
                 <?= csrfField() ?>
 
@@ -142,6 +153,21 @@ $submitted = !empty($_GET['sent']) && (int) $_GET['sent'] === 1;
                                     <?= $fRequired ? 'required' : '' ?>
                                 >
                                 <label for="field_<?= e($fName) ?>"><?= $fPlaceholder ?: $fLabel ?></label>
+                            </div>
+
+                        <?php elseif ($fType === 'file'): ?>
+                            <div class="file-upload-wrapper">
+                                <input
+                                    class="form-control-file"
+                                    type="file"
+                                    id="field_<?= e($fName) ?>"
+                                    name="<?= e($fName) ?>"
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp"
+                                    <?= $fRequired ? 'required' : '' ?>
+                                >
+                                <p class="form-text" style="margin-top:4px;">
+                                    Formatos aceitos: PDF, Word, Excel, JPG, PNG &mdash; máx. 10 MB
+                                </p>
                             </div>
 
                         <?php else: ?>

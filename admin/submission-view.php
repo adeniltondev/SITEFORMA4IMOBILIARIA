@@ -278,14 +278,26 @@ require_once __DIR__ . '/layout/header.php';
                         $name  = $field['name'] ?? '';
                         $label = $field['label'] ?? $name;
                         $type  = $field['type']  ?? 'text';
-                        $value = $submData[$name] ?? '—';
+                        $value = $submData[$name] ?? '';
                         if ($type === 'checkbox') {
                             $value = $value == '1' ? 'Sim ✓' : 'Não';
                         }
                     ?>
                     <tr>
                         <td style="font-weight:600;background:#fafbfc;"><?= e($label) ?></td>
-                        <td><?= nl2br(e((string) $value)) ?></td>
+                        <td>
+                        <?php if ($type === 'file' && !empty($value)): ?>
+                            <a href="<?= $appUrl ?>/uploads/<?= e($value) ?>" target="_blank"
+                               class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Baixar documento
+                            </a>
+                        <?php elseif ($type === 'file'): ?>
+                            <span class="text-muted">— Não enviado</span>
+                        <?php else: ?>
+                            <?= nl2br(e((string) $value)) ?>
+                        <?php endif; ?>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php endif; ?>
