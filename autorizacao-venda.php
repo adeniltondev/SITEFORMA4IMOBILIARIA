@@ -90,6 +90,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
         }
 
         if (empty($errors)) {
+            // Processa uploads de documentos
+            $docFields = ['doc_cpf_rg', 'doc_iptu', 'doc_matricula', 'doc_outros'];
+            foreach ($docFields as $docField) {
+                $uploadedFile = $_FILES[$docField] ?? null;
+                if ($uploadedFile && $uploadedFile['error'] === UPLOAD_ERR_OK && $uploadedFile['size'] > 0) {
+                    $savedName = uploadFile($uploadedFile, DOCS_PATH, ALLOWED_DOC_TYPES);
+                    $data[$docField] = $savedName ? 'docs/' . $savedName : '';
+                } else {
+                    $data[$docField] = '';
+                }
+            }
+
             $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE);
             $ip       = getClientIP();
 
@@ -516,7 +528,7 @@ function fCheck(string $name, string $value): string
 
     <?php else: ?>
     <!-- ===================== FORMULÁRIO ===================== -->
-    <form method="POST" action="" novalidate>
+    <form method="POST" action="" enctype="multipart/form-data" novalidate>
         <?= csrfField() ?>
 
         <div class="doc-body">
@@ -951,6 +963,48 @@ function fCheck(string $name, string $value): string
                     <div class="sig-sub">CPF: <input style="border:none;outline:none;font-size:11px;width:120px;font-family:Inter,sans-serif;" type="text" name="testemunha_2_cpf" value="<?= fv('testemunha_2_cpf') ?>" placeholder="000.000.000-00" data-mask="cpf"></div>
                 </div>
             </div>
+
+            <!-- ═══════════════════════════════════════
+                 UPLOAD DE DOCUMENTOS
+            ═══════════════════════════════════════ -->
+            <div class="section">
+                <div class="section-title">Documentos (opcional)</div>
+                <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
+                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">RG / CPF do Proprietário</label>
+                        <input type="file" name="doc_cpf_rg"
+                               accept=".pdf,.jpg,.jpeg,.png,.webp"
+                               style="font-size:12px;width:100%;color:#374151;">
+                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+
+                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
+                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">Carnê / Comprovante de IPTU</label>
+                        <input type="file" name="doc_iptu"
+                               accept=".pdf,.jpg,.jpeg,.png,.webp"
+                               style="font-size:12px;width:100%;color:#374151;">
+                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+
+                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
+                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">Matrícula do Imóvel</label>
+                        <input type="file" name="doc_matricula"
+                               accept=".pdf,.jpg,.jpeg,.png,.webp"
+                               style="font-size:12px;width:100%;color:#374151;">
+                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+
+                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
+                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">Outros Documentos</label>
+                        <input type="file" name="doc_outros"
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+                               style="font-size:12px;width:100%;color:#374151;">
+                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, Word, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+
+                </div>
+            </div><!-- /docs -->
 
         </div><!-- /.doc-body -->
 
