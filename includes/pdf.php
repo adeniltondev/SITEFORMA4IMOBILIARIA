@@ -108,11 +108,15 @@ function buildDefaultHTML(array $form, array $submission, array $data, array $se
     $rows = '';
     foreach ($fields as $field) {
         $name  = $field['name']  ?? '';
+        $ftype = $field['type']  ?? 'text';
         $label = e($field['label'] ?? $name);
-        $value = e($data[$name] ?? '—');
 
-        if (($field['type'] ?? '') === 'checkbox') {
+        if ($ftype === 'file') {
+            $value = !empty($data[$name]) ? '&#x1F4CE; Documento anexado' : '—';
+        } elseif ($ftype === 'checkbox') {
             $value = !empty($data[$name]) ? 'Sim' : 'Não';
+        } else {
+            $value = e($data[$name] ?? '—');
         }
 
         $rows .= "
