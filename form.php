@@ -61,7 +61,68 @@ foreach ($fields as $f) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $appUrl ?>/assets/css/style.css">
-    <style>:root { --primary: <?= $primaryColor ?>; }</style>
+    <style>
+        :root { --primary: <?= $primaryColor ?>; }
+
+        /* ---- Grid do formulário público ---- */
+        .pf-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 18px;
+        }
+        .pf-grid .form-group           { margin-bottom: 18px; }
+        .pf-grid .form-group.col-full  { grid-column: 1 / -1; }
+        .pf-grid .form-group.col-half  { grid-column: span 1; }
+
+        /* File upload estilizado */
+        .file-upload-wrapper {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 18px 16px;
+            background: #f8fafc;
+            text-align: center;
+            transition: border-color .18s;
+        }
+        .file-upload-wrapper:hover { border-color: var(--primary); }
+        .file-upload-wrapper input[type=file] {
+            display: block;
+            width: 100%;
+            font-size: 13px;
+            color: #334155;
+            cursor: pointer;
+        }
+        .file-upload-icon {
+            width: 38px; height: 38px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 8px;
+        }
+        .file-upload-icon svg { width: 20px; height: 20px; color: var(--primary); }
+        .file-upload-title {
+            font-size: 13px; font-weight: 600;
+            color: #334155; margin-bottom: 2px;
+        }
+
+        /* Separável por seção */
+        .pf-section-title {
+            grid-column: 1 / -1;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--muted, #94a3b8);
+            border-bottom: 1px solid var(--border, #e2e8f0);
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 560px) {
+            .pf-grid { grid-template-columns: 1fr; }
+            .pf-grid .form-group.col-half { grid-column: 1 / -1; }
+        }
+    </style>
 </head>
 <body>
 <div class="public-form-wrapper">
@@ -99,26 +160,34 @@ foreach ($fields as $f) {
                 <input type="hidden" name="form_id" value="<?= (int) $form['id'] ?>">
                 <?= csrfField() ?>
 
+                <div class="pf-grid">
+
                 <?php foreach ($fields as $field): ?>
                     <?php
-                    $fName     = preg_replace('/[^a-zA-Z0-9_]/', '', $field['name'] ?? '');
-                    $fLabel    = e($field['label'] ?? $fName);
-                    $fType     = $field['type'] ?? 'text';
-                    $fRequired = !empty($field['required']);
+                    $fName        = preg_replace('/[^a-zA-Z0-9_]/', '', $field['name'] ?? '');
+                    $fLabel       = e($field['label'] ?? $fName);
+                    $fType        = $field['type'] ?? 'text';
+                    $fRequired    = !empty($field['required']);
                     $fPlaceholder = e($field['placeholder'] ?? '');
-                    $fOptions  = array_filter(array_map('trim', explode(',', $field['options'] ?? '')));
+                    $fOptions     = array_filter(array_map('trim', explode(',', $field['options'] ?? '')));
 
-                    // Determina máscara automática para campos comuns
-                    $dataMask  = '';
-                    if ($fName === 'contratante_cpf')      $dataMask = 'data-mask="cpf"';
+                    // Tipos que ocupam largura total
+                    $isFullWidth = in_array($fType, ['textarea', 'file', 'checkbox'], true);
+                    $colClass    = $isFullWidth ? 'col-full' : 'col-half';
+
+                    // Máscara automática
+                    $dataMask = '';
+                    if ($fName === 'contratante_cpf')          $dataMask = 'data-mask="cpf"';
                     elseif ($fName === 'contratante_telefone') $dataMask = 'data-mask="phone"';
-                    elseif ($fName === 'cep')              $dataMask = 'data-mask="cep"';
+                    elseif ($fName === 'cep')                  $dataMask = 'data-mask="cep"';
                     ?>
-                    <div class="form-group">
+                    <div class="form-group <?= $colClass ?>">
+                        <?php if ($fType !== 'checkbox'): ?>
                         <label class="form-label" for="field_<?= e($fName) ?>">
                             <?= $fLabel ?>
                             <?php if ($fRequired): ?><span class="required">*</span><?php endif; ?>
                         </label>
+                        <?php endif; ?>
 
                         <?php if ($fType === 'textarea'): ?>
                             <textarea
@@ -157,16 +226,19 @@ foreach ($fields as $f) {
 
                         <?php elseif ($fType === 'file'): ?>
                             <div class="file-upload-wrapper">
+                                <div class="file-upload-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                                </div>
+                                <p class="file-upload-title">Anexar arquivo</p>
                                 <input
-                                    class="form-control-file"
                                     type="file"
                                     id="field_<?= e($fName) ?>"
                                     name="<?= e($fName) ?>"
                                     accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp"
                                     <?= $fRequired ? 'required' : '' ?>
                                 >
-                                <p class="form-text" style="margin-top:4px;">
-                                    Formatos aceitos: PDF, Word, Excel, JPG, PNG &mdash; máx. 10 MB
+                                <p class="form-text" style="margin-top:6px;">
+                                    PDF, Word, Excel, JPG, PNG &mdash; máx. 10&nbsp;MB
                                 </p>
                             </div>
 
@@ -185,8 +257,10 @@ foreach ($fields as $f) {
                     </div>
                 <?php endforeach; ?>
 
+                </div><!-- /.pf-grid -->
+
                 <div style="margin-top:24px;">
-                    <button type="submit" class="btn btn-primary w-full" id="submitBtn" style="justify-content:center;padding:12px;">
+                    <button type="submit" class="btn btn-primary w-full" id="submitBtn" style="justify-content:center;padding:14px;font-size:15px;">
                         Enviar Formulário
                     </button>
                 </div>
