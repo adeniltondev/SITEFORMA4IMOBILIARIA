@@ -190,13 +190,14 @@ HTML;
  */
 function buildAuthorizationHTML(array $form, array $submission, array $data, array $settings): string
 {
-    $appName     = e($settings['app_name'] ?? APP_NAME);
-    $logoPath    = !empty($settings['logo_path'])
+    $appName      = e($settings['app_name'] ?? APP_NAME);
+    $primaryColor = $settings['primary_color'] ?? '#0e4f6c';
+    $logoPath     = !empty($settings['logo_path'])
         ? LOGO_PATH . DIRECTORY_SEPARATOR . $settings['logo_path']
         : '';
-    $logoHtml    = buildLogoImg($logoPath, $appName);
-    $submId      = (int) $submission['id'];
-    $submDate    = formatDate($submission['created_at'] ?? date('Y-m-d H:i:s'));
+    $logoHtml     = buildLogoImg($logoPath, $appName);
+    $submId       = (int) $submission['id'];
+    $submDate     = formatDate($submission['created_at'] ?? date('Y-m-d H:i:s'));
 
     // Helper: retorna valor do campo ou linha em branco
     $d = function (string $key, string $default = '') use ($data): string {
