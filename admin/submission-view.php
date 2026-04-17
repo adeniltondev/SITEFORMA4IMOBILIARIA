@@ -262,14 +262,30 @@ require_once __DIR__ . '/layout/header.php';
                             'testemunha_1_cpf'       => 'Testemunha 1 — CPF',
                             'testemunha_2_nome'      => 'Testemunha 2 — Nome',
                             'testemunha_2_cpf'       => 'Testemunha 2 — CPF',
+                            // Documentos uploados
+                            'doc_cpf_rg'             => 'Documento: RG / CPF',
+                            'doc_iptu'               => 'Documento: IPTU',
+                            'doc_matricula'          => 'Documento: Matrícula do Imóvel',
+                            'doc_outros'             => 'Documento: Outros',
                         ];
                         foreach ($authLabels as $key => $label):
                             $val = $submData[$key] ?? '';
                             if ($val === '') continue;
+                            $isDoc = str_starts_with($key, 'doc_');
                     ?>
                     <tr>
                         <td style="font-weight:600;background:#fafbfc;"><?= e($label) ?></td>
-                        <td><?= nl2br(e((string) $val)) ?></td>
+                        <td>
+                        <?php if ($isDoc && !empty($val)): ?>
+                            <a href="<?= $appUrl ?>/uploads/<?= e($val) ?>" target="_blank"
+                               class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Baixar documento
+                            </a>
+                        <?php else: ?>
+                            <?= nl2br(e((string) $val)) ?>
+                        <?php endif; ?>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php else: ?>
