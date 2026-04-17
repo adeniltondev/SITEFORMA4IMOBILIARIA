@@ -69,13 +69,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
 
         $data = [];
         foreach ($textFields as $f) {
-            $data[$f] = htmlspecialchars(trim($_POST[$f] ?? ''), ENT_QUOTES, 'UTF-8');
+            $data[$f] = trim($_POST[$f] ?? '');
         }
 
         // Tipo de imóvel (checkboxes múltiplos)
         $tipos = $_POST['tipo_imovel'] ?? [];
         $data['tipo_imovel'] = is_array($tipos)
-            ? implode(', ', array_map(function ($t) { return htmlspecialchars(trim($t), ENT_QUOTES, 'UTF-8'); }, $tipos))
+            ? implode(', ', array_map('trim', $tipos))
             : '';
 
         // Validações mínimas
