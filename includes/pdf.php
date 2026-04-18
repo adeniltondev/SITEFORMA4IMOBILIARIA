@@ -332,6 +332,30 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
         ? "<div class=\"section\"><div class=\"sec-title\">Informa&ccedil;&otilde;es Adicionais</div><table class=\"ft\">{$extraAuthRows}</table></div>"
         : '';
 
+    // ── Documentos anexados (venda) ─────────────────────────────────────
+    $docLabelsAuth = [
+        'doc_cpf_rg'    => 'RG / CPF do Propriet&aacute;rio',
+        'doc_iptu'      => 'Carn&ecirc; / Comprovante de IPTU',
+        'doc_matricula' => 'Matr&iacute;cula do Im&oacute;vel',
+        'doc_outros'    => 'Outros Documentos',
+    ];
+    $docsRowsAuth = '';
+    foreach ($docLabelsAuth as $key => $label) {
+        $filePath = trim($data[$key] ?? '');
+        if ($filePath === '') continue;
+        $fileName = e(basename($filePath));
+        $docsRowsAuth .= "<tr>"
+            . "<td style='width:35%;'><span class='fl'>{$label}</span></td>"
+            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; {$fileName}</span></td>"
+            . "</tr>";
+    }
+    $docsHtmlAuth = $docsRowsAuth !== ''
+        ? "<div class='section' style='margin-top:10px;'>"
+          . "<div class='sec-title'>Documentos Anexados</div>"
+          . "<table class='ft'>{$docsRowsAuth}</table>"
+          . "</div>"
+        : '';
+
     return <<<HTML
 
 <!DOCTYPE html>
@@ -620,6 +644,8 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
     </tr>
   </table>
 
+  {$docsHtmlAuth}
+
   <div class="doc-footer">
     {$appName} &mdash; Av. Hermes Fontes, nº 1524, Bairro Luzia &ndash; CEP 49.048.010 &ndash; Aracaju/SE &mdash;
     (79) 3304-0000 / 99691-0000 &mdash; contato@a4imobiliaria.com.br
@@ -741,9 +767,34 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
         : "<div class=\"brand-box\"><span class=\"bname\">{$appName}</span><br><span class=\"bsub\">Imobili&aacute;ria</span></div>";
 
     // ── Checkbox visual ──────────────────────────────────────────────
-    // Gera célula de exclusividade SIM/NÃO
     $excSim = ($comExclusividade === 'Sim') ? '&#x2713;' : '&nbsp;';
     $excNao = ($comExclusividade === 'Não') ? '&#x2713;' : '&nbsp;';
+
+    // ── Documentos anexados ──────────────────────────────────────────
+    $docLabels = [
+        'doc_cpf_rg'    => 'RG / CPF do Propriet&aacute;rio',
+        'doc_iptu'      => 'Carn&ecirc; / Comprovante de IPTU',
+        'doc_matricula' => 'Matr&iacute;cula do Im&oacute;vel',
+        'doc_outros'    => 'Outros Documentos',
+    ];
+    $docsRows = '';
+    foreach ($docLabels as $key => $label) {
+        $filePath = trim($data[$key] ?? '');
+        if ($filePath === '') continue;
+        // Extrai só o nome do arquivo (sem o prefixo docs/)
+        $fileName = e(basename($filePath));
+        $fileUrl  = e(APP_URL . '/uploads/' . ltrim($filePath, '/'));
+        $docsRows .= "<tr>"
+            . "<td style='width:35%;'><span class='fl'>{$label}</span></td>"
+            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; {$fileName}</span></td>"
+            . "</tr>";
+    }
+    $docsHtml = $docsRows !== ''
+        ? "<div class='section' style='margin-top:10px;'>"
+          . "<div class='sec-title'>Documentos Anexados</div>"
+          . "<table class='ft'>{$docsRows}</table>"
+          . "</div>"
+        : '';
 
     return <<<HTML
 <!DOCTYPE html>
@@ -1022,6 +1073,8 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
       </td>
     </tr>
   </table>
+
+  {$docsHtml}
 
   <div class="doc-footer">
     {$appName} &mdash; Av. Hermes Fontes, n&ordm; 1524, Bairro Luzia &ndash; CEP 49.048.010 &ndash; Aracaju/SE &mdash;
