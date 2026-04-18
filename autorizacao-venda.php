@@ -121,7 +121,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
                     'created_at' => date('Y-m-d H:i:s'),
                     'ip_address' => $ip,
                 ];
-                $pdfRelPath = generatePDF($form, $submission, $settings);
+                // Força o template de autorização de venda
+                $formForPdf = $form;
+                $formForPdf['pdf_template'] = 'authorization';
+                $pdfRelPath = generatePDF($formForPdf, $submission, $settings);
                 if ($pdfRelPath) {
                     $db->query('UPDATE submissions SET pdf_path = ? WHERE id = ?', [$pdfRelPath, $submId]);
                 }
