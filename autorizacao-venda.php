@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
     if (!validateCSRF($csrfToken)) {
         $errors[] = 'Token de segurança inválido. Recarregue a página e tente novamente.';
     } else {
+        // ── Campos fixos mapeados no template PDF ──────────────────────────
         $textFields = [
             // Contratante
             'nome_razao_social', 'sexo', 'data_nascimento', 'rg', 'orgao_expedidor',
@@ -78,6 +79,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
             ? implode(', ', array_map('trim', $tipos))
             : '';
 
+        // ── Campos extras adicionados pelo admin (dinâmicos) ───────────────
+        // Lê os campos cadastrados no banco e captura os que não estão na lista fixa
+        $fixedFieldSet   = array_flip($textFields);
+        $fixedFieldSet['tipo_imovel'] = true;
+        $fixedFieldSet[CSRF_TOKEN_NAME] = true; // ignora token CSRF
+
+        $extraFields = decodeFields($form['fields'] ?? '[]');
+        foreach ($extraFields as $ef) {
+            $efName = preg_replace('/[^a-zA-Z0-9_]/', '', $ef['name'] ?? '');
+            if ($efName === '' || isset($fixedFieldSet[$efName])) {
+                continue; // já capturado acima ou nome inválido
+            }
+            $efType = $ef['type'] ?? 'text';
+            if ($efType === 'file') {
+                // Arquivos extras tratados abaixo (na seção de uploads)
+                continue;
+            } elseif ($efType === 'checkbox') {
+                $raw = $_POST[$efName] ?? [];
+                $data[$efName] = is_array($raw)
+                    ? implode(', ', array_map('trim', $raw))
+                    : (trim((string)$raw) !== '' ? trim((string)$raw) : '');
+            } else {
+                $data[$efName] = mb_substr(trim(strip_tags($_POST[$efName] ?? '')), 0, 2000);
+            }
+        }
+
         // Validações mínimas
         if (empty($data['nome_razao_social'])) {
             $errors[] = 'Nome / Razão Social é obrigatório.';
@@ -90,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
         }
 
         if (empty($errors)) {
-            // Processa uploads de documentos
+            // Processa uploads de documentos fixos
             $docFields = ['doc_cpf_rg', 'doc_iptu', 'doc_matricula', 'doc_outros'];
             foreach ($docFields as $docField) {
                 $uploadedFile = $_FILES[$docField] ?? null;
@@ -99,6 +126,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
                     $data[$docField] = $savedName ? 'docs/' . $savedName : '';
                 } else {
                     $data[$docField] = '';
+                }
+            }
+
+            // Processa uploads de campos extras (type=file) adicionados pelo admin
+            $fixedDocSet = array_flip($docFields);
+            foreach ($extraFields as $ef) {
+                $efName = preg_replace('/[^a-zA-Z0-9_]/', '', $ef['name'] ?? '');
+                if ($efName === '' || isset($fixedDocSet[$efName]) || ($ef['type'] ?? '') !== 'file') {
+                    continue;
+                }
+                $uploadedFile = $_FILES[$efName] ?? null;
+                if ($uploadedFile && $uploadedFile['error'] === UPLOAD_ERR_OK && $uploadedFile['size'] > 0) {
+                    $savedName = uploadFile($uploadedFile, DOCS_PATH, ALLOWED_DOC_TYPES);
+                    $data[$efName] = $savedName ? 'docs/' . $savedName : '';
+                } else {
+                    $data[$efName] = '';
                 }
             }
 

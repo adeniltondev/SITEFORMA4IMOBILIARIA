@@ -530,6 +530,54 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
     Aracaju, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; de &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; de {$anoAtual}.
   </p>
 
+  <!-- ===== CAMPOS EXTRAS (adicionados pelo admin) ===== -->
+  <?php
+    // Conjunto de chaves já mapeadas no template fixo
+    $fixedKeys = [
+        'nome_razao_social','sexo','data_nascimento','rg','orgao_expedidor',
+        'cpf','naturalidade','nacionalidade','cnpj','nome_fantasia',
+        'estado_civil','conjuge','telefones',
+        'endereco_residencial','bairro_residencial','cidade_uf_residencial','cep_residencial',
+        'telefone_fixo','celular',
+        'endereco_comercial','bairro_comercial','cidade_uf_comercial','cep_comercial',
+        'emails',
+        'tipo_imovel','situacao_imovel',
+        'endereco_imovel','bairro_imovel','cidade_uf_imovel','cep_imovel',
+        'ponto_referencia','registro_imovel','matricula_iptu',
+        'num_dormitorios','num_salas','num_suites','garagens','area_privativa',
+        'tem_varanda','tem_elevador','lazer_completo','garagem_coberta','obs_descricao',
+        'valor_minimo_venda','valor_minimo_extenso','obs_preco',
+        'valor_condominio','valor_condominio_extenso',
+        'porcentagem_comissao','prazo_exclusividade','formas_pagamento',
+        'nome_corretor','testemunha_1_nome','testemunha_1_cpf','testemunha_2_nome','testemunha_2_cpf',
+        'doc_cpf_rg','doc_iptu','doc_matricula','doc_outros',
+    ];
+    $fixedKeySet = array_flip($fixedKeys);
+    $extraRows   = '';
+    // Lê os campos do formulário para obter os labels corretos
+    $formFields  = decodeFields($form['fields'] ?? '[]');
+    $labelMap    = [];
+    foreach ($formFields as $ff) {
+        $fn = preg_replace('/[^a-zA-Z0-9_]/', '', $ff['name'] ?? '');
+        if ($fn !== '') {
+            $labelMap[$fn] = $ff['label'] ?? $fn;
+        }
+    }
+    foreach ($data as $k => $v) {
+        if (isset($fixedKeySet[$k])) continue;
+        $v = trim((string)$v);
+        if ($v === '') continue;
+        $label = e($labelMap[$k] ?? ucwords(str_replace('_', ' ', $k)));
+        $value = (strpos($v, 'docs/') === 0) ? '&#x1F4CE; Documento anexado' : e($v);
+        $extraRows .= "<tr><td><span class=\"fl\">{$label}</span><span class=\"fv\">{$value}</span></td></tr>";
+    }
+    if ($extraRows): ?>
+  <div class="section">
+    <div class="sec-title">Informações Adicionais</div>
+    <table class="ft"><?= $extraRows ?></table>
+  </div>
+  <?php endif; ?>
+
   <!-- ===== ASSINATURAS ===== -->
   <table class="sigs">
     <tr>
