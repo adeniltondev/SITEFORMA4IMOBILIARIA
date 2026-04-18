@@ -44,6 +44,8 @@ function generatePDF(array $form, array $submission, array $settings = [])
 
         if ($template === 'authorization') {
             $html = buildAuthorizationHTML($form, $submission, $data, $settings);
+        } elseif ($template === 'locacao') {
+            $html = buildLocacaoHTML($form, $submission, $data, $settings);
         } else {
             $html = buildDefaultHTML($form, $submission, $data, $settings);
         }
