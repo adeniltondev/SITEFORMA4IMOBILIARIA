@@ -197,9 +197,419 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
     $logoPath     = !empty($settings['logo_path'])
         ? LOGO_PATH . DIRECTORY_SEPARATOR . $settings['logo_path']
         : '';
-    $logoHtml     = buildLogoImg($logoPath, $appName);
     $submId       = (int) $submission['id'];
     $submDate     = formatDate($submission['created_at'] ?? date('Y-m-d H:i:s'));
+    $anoAtual     = date('Y');
+
+    // Helper
+    $d = function (string $key, string $default = '') use ($data): string {
+        $v = trim($data[$key] ?? '');
+        return e($v !== '' ? $v : $default);
+    };
+
+    // Contratante
+    $nomeContratante = $d('nome_razao_social');
+    $sexo            = $d('sexo');
+    $dataNasc        = $d('data_nascimento');
+    $rg              = $d('rg');
+    $orgaoExp        = $d('orgao_expedidor');
+    $cpf             = $d('cpf');
+    $naturalidade    = $d('naturalidade');
+    $nacionalidade   = $d('nacionalidade');
+    $cnpj            = $d('cnpj');
+    $nomeFant        = $d('nome_fantasia');
+    $estadoCivil     = $d('estado_civil');
+    $conjuge         = $d('conjuge');
+    $telefones       = $d('telefones');
+    $endRes          = $d('endereco_residencial');
+    $bairroRes       = $d('bairro_residencial');
+    $cidUfRes        = $d('cidade_uf_residencial');
+    $cepRes          = $d('cep_residencial');
+    $telFixo         = $d('telefone_fixo');
+    $celular         = $d('celular');
+    $endCom          = $d('endereco_comercial');
+    $bairroCom       = $d('bairro_comercial');
+    $cidUfCom        = $d('cidade_uf_comercial');
+    $cepCom          = $d('cep_comercial');
+    $emails          = $d('emails');
+
+    // Exclusividade
+    $comExclusividade = $d('com_exclusividade', '');
+    $excSim = ($comExclusividade === 'Sim') ? '&#x2713;' : '&nbsp;';
+    $excNao = ($comExclusividade === 'N&atilde;o') ? '&#x2713;' : '&nbsp;';
+    // Fallback sem HTML entities
+    if ($comExclusividade === 'Não') { $excNao = '&#x2713;'; }
+
+    // Imóvel
+    $tipoImovel     = $d('tipo_imovel');
+    $situacaoImovel = $d('situacao_imovel');
+    $endImovel      = $d('endereco_imovel');
+    $bairroImovel   = $d('bairro_imovel');
+    $cidUfImovel    = $d('cidade_uf_imovel');
+    $cepImovel      = $d('cep_imovel');
+    $pontoRef       = $d('ponto_referencia');
+    $registroImovel = $d('registro_imovel');
+    $matriculaIptu  = $d('matricula_iptu');
+
+    // Descrição
+    $numDorm      = $d('num_dormitorios');
+    $numSalas     = $d('num_salas');
+    $numSuites    = $d('num_suites');
+    $garagens     = $d('garagens');
+    $areaPriv     = $d('area_privativa');
+    $temVaranda   = $d('tem_varanda');
+    $temElevador  = $d('tem_elevador');
+    $lazer        = $d('lazer_completo');
+    $garagemCob   = $d('garagem_coberta');
+    $obsDesc      = $d('obs_descricao', '');
+
+    // Condições
+    $valorMin        = $d('valor_minimo_venda', '_______________');
+    $valorMinExtenso = $d('valor_minimo_extenso');
+    $obsPreco        = $d('obs_preco', '');
+    $valorCondo      = $d('valor_condominio', '_______________');
+    $condoExtenso    = $d('valor_condominio_extenso');
+    $formasPag       = $d('formas_pagamento');
+    $comissao        = $d('porcentagem_comissao', '___');
+    $prazo           = $d('prazo_exclusividade', '___');
+
+    // Assinaturas
+    $nomeCorretor = $d('nome_corretor');
+    $test1Nome    = $d('testemunha_1_nome');
+    $test1Cpf     = $d('testemunha_1_cpf');
+    $test2Nome    = $d('testemunha_2_nome');
+    $test2Cpf     = $d('testemunha_2_cpf');
+
+    // Logo base64
+    $logoBannerHtml = '';
+    if (!empty($logoPath) && is_file($logoPath)) {
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($logoPath);
+        if (in_array($mime, ['image/jpeg','image/png','image/gif','image/webp'], true)) {
+            $b64 = base64_encode(file_get_contents($logoPath));
+            $logoBannerHtml = "<img src=\"data:{$mime};base64,{$b64}\" style=\"max-height:65px;max-width:130px;\">";
+        }
+    }
+    $bannerLogoCell = $logoBannerHtml
+        ? "<div style=\"background:rgba(255,255,255,.12);padding:8px 10px;border-radius:4px;text-align:center;\">{$logoBannerHtml}</div>"
+        : "<div class=\"brand-box\"><span class=\"bname\">{$appName}</span><br><span class=\"bsub\">Imobili&aacute;ria</span></div>";
+
+    // Documentos anexados
+    $docLabels = [
+        'doc_cpf_rg'    => 'RG / CPF do Propriet&aacute;rio',
+        'doc_iptu'      => 'Carn&ecirc; / IPTU',
+        'doc_matricula' => 'Matr&iacute;cula do Im&oacute;vel',
+        'doc_outros'    => 'Outros Documentos',
+    ];
+    $docsRowsAuth = '';
+    foreach ($docLabels as $key => $label) {
+        $filePath = trim($data[$key] ?? '');
+        if ($filePath === '') continue;
+        $fileName = e(basename($filePath));
+        $fileUrl  = e(APP_URL . '/uploads/' . ltrim($filePath, '/'));
+        $docsRowsAuth .= "<tr>"
+            . "<td style='width:35%;'><span class='fl'>{$label}</span></td>"
+            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; "
+            . "<a href='{$fileUrl}' style='color:#0e4f6c;text-decoration:underline;'>{$fileName}</a>"
+            . "</span></td>"
+            . "</tr>";
+    }
+    $docsHtmlAuth = $docsRowsAuth !== ''
+        ? "<div class='section' style='margin-top:10px;'>"
+          . "<div class='sec-title'>Documentos Anexados</div>"
+          . "<table class='ft'>{$docsRowsAuth}</table>"
+          . "</div>"
+        : '';
+
+    return <<<HTML
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DejaVu Sans', sans-serif; font-size: 9px; color: #1a2332; background: #fff; line-height: 1.45; }
+  .page { padding: 20px 28px; }
+  /* Banner */
+  .banner { background: #0e4f6c; }
+  .banner-inner { padding: 14px 20px; display: table; width: 100%; }
+  .banner-logo  { display: table-cell; vertical-align: middle; width: 130px; }
+  .banner-title { display: table-cell; vertical-align: middle; text-align: center; }
+  .banner-title h1 { color: #fff; font-size: 16px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+  .banner-title p  { color: rgba(255,255,255,.7); font-size: 7.5px; margin-top: 3px; }
+  .brand-box { background: rgba(255,255,255,.15); padding: 8px 10px; text-align: center; border-radius: 4px; }
+  .brand-box .bname { color: #fff; font-size: 14px; font-weight: bold; }
+  .brand-box .bsub  { color: rgba(255,255,255,.75); font-size: 8px; }
+  /* Seções */
+  .section { margin-bottom: 9px; }
+  .sec-title { font-weight: bold; font-size: 9.5px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid #1a2332; padding-bottom: 2px; margin-bottom: 0; }
+  /* Tabela campos */
+  .ft { width: 100%; border-collapse: collapse; }
+  .ft td { border: 1px solid #b0bec5; padding: 2px 5px; }
+  .fl { color: #546e7a; font-size: 7px; font-weight: bold; text-transform: uppercase; letter-spacing: .2px; display: block; }
+  .fv { color: #1a2332; font-size: 8.5px; display: block; min-height: 10px; }
+  /* Exclusividade */
+  .exc-bar { border: 1.5px solid #0e4f6c; border-radius: 3px; margin: 7px 0; background: #e8f4fd; padding: 4px 10px; }
+  .exc-label { color: #0e4f6c; font-size: 9px; font-weight: bold; text-transform: uppercase; }
+  .exc-opts  { display: inline-block; margin-left: 12px; font-size: 9px; }
+  .cb { display: inline-block; width: 9px; height: 9px; border: 1px solid #546e7a; margin-right: 2px; text-align: center; line-height: 9px; font-size: 8px; vertical-align: middle; }
+  .cb-row  { padding: 3px 6px; border: 1px solid #b0bec5; border-top: none; font-size: 8.5px; }
+  .cb-first { border-top: 1px solid #b0bec5; }
+  /* Legal */
+  .legal { font-size: 8px; line-height: 1.7; color: #374151; text-align: justify; margin: 7px 0; padding: 7px 10px; background: #f8fafc; border-left: 3px solid #0e4f6c; }
+  /* Cláusulas */
+  .clause { font-size: 8px; line-height: 1.7; color: #374151; text-align: justify; margin-bottom: 4px; }
+  .cl { font-weight: bold; }
+  /* Assinaturas */
+  .sigs { width: 100%; margin-top: 14px; border-collapse: collapse; }
+  .sigs td { width: 25%; text-align: center; padding: 5px 4px 3px; vertical-align: bottom; }
+  .sline { border-top: 1px solid #1a2332; padding-top: 2px; margin-bottom: 2px; font-size: 7.5px; min-height: 22px; }
+  .stitle { font-size: 7.5px; font-weight: bold; text-transform: uppercase; }
+  .ssub   { font-size: 7px; color: #64748b; font-style: italic; }
+  /* Watermark */
+  .watermark { position: fixed; top: 35%; left: 5%; transform: rotate(-35deg); font-size: 70px; color: rgba(0,0,0,0.04); font-weight: bold; text-transform: uppercase; z-index: -1; letter-spacing: 8px; }
+  /* Footer */
+  .doc-footer { border-top: 1px solid #e2e8f0; margin-top: 10px; padding-top: 5px; text-align: center; font-size: 7px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="watermark">CONFIDENCIAL</div>
+<div class="page">
+
+  <!-- BANNER -->
+  <div class="banner">
+    <div class="banner-inner">
+      <div class="banner-logo">{$bannerLogoCell}</div>
+      <div class="banner-title">
+        <h1>Autoriza&ccedil;&atilde;o de Venda com Exclusividade</h1>
+        <p>Contrato n&ordm; AVE-{$submId} &mdash; {$submDate}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXCLUSIVIDADE -->
+  <div class="exc-bar">
+    <span class="exc-label">&#9733; Com Exclusividade:</span>
+    <span class="exc-opts">
+      <span class="cb">{$excSim}</span> Sim &nbsp;&nbsp;
+      <span class="cb">{$excNao}</span> N&atilde;o
+    </span>
+  </div>
+
+  <!-- DADOS DO CONTRATANTE -->
+  <div class="section">
+    <div class="sec-title">Dados do Contratante</div>
+    <table class="ft">
+      <tr>
+        <td style="width:62%"><span class="fl">Nome / Raz&atilde;o Social</span><span class="fv">{$nomeContratante}</span></td>
+        <td><span class="fl">Sexo</span><span class="fv">{$sexo}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Data de Nascimento</span><span class="fv">{$dataNasc}</span></td>
+        <td><span class="fl">RG n&ordm;</span><span class="fv">{$rg}</span></td>
+        <td><span class="fl">&Oacute;rg&atilde;o Expedidor</span><span class="fv">{$orgaoExp}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">CPF n&ordm;</span><span class="fv">{$cpf}</span></td>
+        <td><span class="fl">Naturalidade</span><span class="fv">{$naturalidade}</span></td>
+        <td><span class="fl">Nacionalidade</span><span class="fv">{$nacionalidade}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">CNPJ n&ordm;</span><span class="fv">{$cnpj}</span></td>
+        <td colspan="2"><span class="fl">Nome de Fantasia</span><span class="fv">{$nomeFant}</span></td>
+      </tr>
+      <tr>
+        <td colspan="3"><span class="fl">Estado Civil</span><span class="fv">{$estadoCivil}</span></td>
+      </tr>
+      <tr>
+        <td colspan="2"><span class="fl">C&ocirc;njuge</span><span class="fv">{$conjuge}</span></td>
+        <td><span class="fl">Telefones</span><span class="fv">{$telefones}</span></td>
+      </tr>
+      <tr>
+        <td colspan="3"><span class="fl">Endere&ccedil;o Residencial</span><span class="fv">{$endRes}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Bairro</span><span class="fv">{$bairroRes}</span></td>
+        <td><span class="fl">Cidade / UF</span><span class="fv">{$cidUfRes}</span></td>
+        <td><span class="fl">CEP</span><span class="fv">{$cepRes}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Telefone Fixo</span><span class="fv">{$telFixo}</span></td>
+        <td colspan="2"><span class="fl">Celular</span><span class="fv">{$celular}</span></td>
+      </tr>
+      <tr>
+        <td colspan="3"><span class="fl">Endere&ccedil;o Comercial</span><span class="fv">{$endCom}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Bairro</span><span class="fv">{$bairroCom}</span></td>
+        <td><span class="fl">Cidade / UF</span><span class="fv">{$cidUfCom}</span></td>
+        <td><span class="fl">CEP</span><span class="fv">{$cepCom}</span></td>
+      </tr>
+      <tr>
+        <td colspan="3"><span class="fl">E-mail(s)</span><span class="fv">{$emails}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- PARÁGRAFO LEGAL -->
+  <div class="legal">
+    O CONTRATANTE acima, propriet&aacute;rio e leg&iacute;timo possuidor do im&oacute;vel abaixo relacionado, contrata a
+    <strong>{$appName}</strong>, inscrita no Conselho Regional dos corretores de im&oacute;veis com o n&ordm; 218 PJ,
+    para promover de forma <strong>EXCLUSIVA</strong> a <strong>VENDA</strong> do seu im&oacute;vel abaixo descrito,
+    pelo prazo m&iacute;nimo de <strong>({$prazo}) dias</strong>, prorrog&aacute;vel automaticamente por per&iacute;odo
+    igual e sucessivo, at&eacute; que uma das partes se manifeste em contr&aacute;rio, por escrito, pelo pre&ccedil;o e
+    condi&ccedil;&otilde;es estipuladas nesta autoriza&ccedil;&atilde;o de <strong>VENDA</strong>.
+  </div>
+
+  <!-- DADOS DO IMÓVEL -->
+  <div class="section">
+    <div class="sec-title">Dados do Im&oacute;vel</div>
+    <div class="cb-row cb-first"><strong>Tipo:</strong> {$tipoImovel}</div>
+    <div class="cb-row"><strong>Situa&ccedil;&atilde;o:</strong> {$situacaoImovel}</div>
+    <table class="ft" style="border-top:none;">
+      <tr>
+        <td colspan="3"><span class="fl">Endere&ccedil;o</span><span class="fv">{$endImovel}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Bairro</span><span class="fv">{$bairroImovel}</span></td>
+        <td><span class="fl">Cidade / UF</span><span class="fv">{$cidUfImovel}</span></td>
+        <td><span class="fl">CEP</span><span class="fv">{$cepImovel}</span></td>
+      </tr>
+      <tr>
+        <td colspan="3"><span class="fl">Ponto de Refer&ecirc;ncia</span><span class="fv">{$pontoRef}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">N&ordm; e Registro do Im&oacute;vel</span><span class="fv">{$registroImovel}</span></td>
+        <td colspan="2"><span class="fl">Matr&iacute;cula de IPTU n&ordm;</span><span class="fv">{$matriculaIptu}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- DESCRIÇÃO DO IMÓVEL -->
+  <div class="section">
+    <div class="sec-title">Descri&ccedil;&atilde;o do Im&oacute;vel</div>
+    <table class="ft">
+      <tr>
+        <td><span class="fl">Dorm.</span><span class="fv">{$numDorm}</span></td>
+        <td><span class="fl">Salas</span><span class="fv">{$numSalas}</span></td>
+        <td><span class="fl">Su&iacute;tes</span><span class="fv">{$numSuites}</span></td>
+        <td><span class="fl">Garagens</span><span class="fv">{$garagens}</span></td>
+        <td><span class="fl">&Aacute;rea Privativa</span><span class="fv">{$areaPriv} m&sup2;</span></td>
+      </tr>
+      <tr>
+        <td colspan="2"><span class="fl">Varanda?</span><span class="fv">{$temVaranda}</span></td>
+        <td colspan="3"><span class="fl">Elevador?</span><span class="fv">{$temElevador}</span></td>
+      </tr>
+      <tr>
+        <td colspan="2"><span class="fl">Lazer Completo?</span><span class="fv">{$lazer}</span></td>
+        <td colspan="3"><span class="fl">Garagem Coberta?</span><span class="fv">{$garagemCob}</span></td>
+      </tr>
+      <tr>
+        <td colspan="5"><span class="fl">Observa&ccedil;&otilde;es</span><span class="fv" style="min-height:20px;">{$obsDesc}</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- CONDIÇÕES PRETENDIDAS -->
+  <div class="section">
+    <div class="sec-title">Condi&ccedil;&otilde;es Pretendidas</div>
+    <table class="ft">
+      <tr>
+        <td style="width:30%"><span class="fl">Valor M&iacute;nimo de Venda R$</span><span class="fv"><strong>{$valorMin}</strong></span></td>
+        <td><span class="fl">Por Extenso</span><span class="fv">{$valorMinExtenso}</span></td>
+      </tr>
+      <tr>
+        <td colspan="2"><span class="fl">Observa&ccedil;&otilde;es do Pre&ccedil;o</span><span class="fv" style="min-height:14px;">{$obsPreco}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Valor do Condom&iacute;nio R$</span><span class="fv">{$valorCondo}</span></td>
+        <td><span class="fl">Por Extenso</span><span class="fv">{$condoExtenso}</span></td>
+      </tr>
+      <tr>
+        <td><span class="fl">Formas de Pagamento</span><span class="fv">{$formasPag}</span></td>
+        <td><span class="fl">Comiss&atilde;o (%)</span><span class="fv">{$comissao}%</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- CLÁUSULAS -->
+  <div class="clause">
+    <span class="cl">a)</span>&nbsp; Sobre o valor da <strong>VENDA</strong> do im&oacute;vel contratado, o CONTRATANTE pagar&aacute; a CONTRATADA {$comissao}%,
+    pagamento esse que dever&aacute; ser feito no ato do recebimento dos valores da referida negocia&ccedil;&atilde;o.
+  </div>
+  <div class="clause">
+    <span class="cl">b)</span>&nbsp; Nos termos do presente, o(a) CONTRATANTE autoriza &agrave; <strong>{$appName}</strong> a ofertar publicamente
+    o im&oacute;vel de sua propriedade acima descrito, cuja &agrave;s custas ser&atilde;o de responsabilidade da CONTRATADA, fotografar o im&oacute;vel e suas
+    depend&ecirc;ncias internas fazendo se publicar as fotos nos ve&iacute;culos e meios de comunica&ccedil;&atilde;o que desejar, inclusive na internet,
+    afixar placas, faixas ou letreiros no im&oacute;vel, realizar visita&ccedil;&otilde;es e demonstra&ccedil;&otilde;es aos interessados.
+  </div>
+  <div class="clause">
+    <span class="cl">c)</span>&nbsp; O Propriet&aacute;rio declara que o dito im&oacute;vel encontra-se livre e desembara&ccedil;ado de quaisquer &ocirc;nus ou
+    restri&ccedil;&otilde;es que impe&ccedil;a sua <strong>VENDA</strong>, comprometendo-se em apresentar &agrave;s suas custas a documenta&ccedil;&atilde;o
+    exigida em transa&ccedil;&otilde;es de VENDA, t&atilde;o logo que solicitado.
+  </div>
+  <p style="font-size:8px;text-align:justify;line-height:1.7;margin-top:4px;">
+    E por estarem de pleno acordo, assinam a presente op&ccedil;&atilde;o em 02 (duas) vias de igual teor, na presen&ccedil;a de duas testemunhas,
+    ficando eleito o foro da comarca de Aracaju para dirimir qualquer d&uacute;vida que venha a ocorrer.
+  </p>
+  <p style="font-size:9px;text-align:right;margin-top:8px;">
+    Aracaju, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; de &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; de {$anoAtual}.
+  </p>
+
+  <!-- ASSINATURAS -->
+  <table class="sigs">
+    <tr>
+      <td>
+        <div class="sline">{$nomeContratante}</div>
+        <div class="stitle">CONTRATANTE</div>
+      </td>
+      <td>
+        <div class="sline">&nbsp;</div>
+        <div class="stitle">CONTRATANTE</div>
+        <div class="ssub">C&ocirc;njuge</div>
+      </td>
+      <td>
+        <div class="sline">&nbsp;</div>
+        <div class="stitle">{$appName}</div>
+        <div class="ssub">Contratada</div>
+      </td>
+      <td>
+        <div class="sline">{$nomeCorretor}</div>
+        <div class="stitle">CORRETOR(A)</div>
+        <div class="ssub">Credenciado</div>
+      </td>
+    </tr>
+  </table>
+
+  <p style="font-size:8px;font-weight:bold;text-transform:uppercase;margin-top:12px;">Testemunhas:</p>
+  <table class="sigs">
+    <tr>
+      <td style="width:50%;">
+        <div class="sline">{$test1Nome}</div>
+        <div class="ssub">CPF: {$test1Cpf}</div>
+      </td>
+      <td style="width:50%;">
+        <div class="sline">{$test2Nome}</div>
+        <div class="ssub">CPF: {$test2Cpf}</div>
+      </td>
+    </tr>
+  </table>
+
+  {$docsHtmlAuth}
+
+  <div class="doc-footer">
+    {$appName} &mdash; Av. Hermes Fontes, n&ordm; 1524, Bairro Luzia &ndash; CEP 49.048.010 &ndash; Aracaju/SE &mdash;
+    (79) 3304-0000 / 99691-0000 &mdash; contato@a4imobiliaria.com.br
+    &mdash; Documento gerado em {$submDate}
+  </div>
+
+</div>
+</body>
+</html>
+HTML;
+}
+
+// ============================================================
+
 
     // Helper: retorna valor do campo ou linha em branco
     $d = function (string $key, string $default = '') use ($data): string {

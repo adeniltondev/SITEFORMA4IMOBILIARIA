@@ -17,19 +17,30 @@ $db           = Database::getInstance();
 $settings     = getAllSettings();
 $appName      = $settings['app_name']      ?? APP_NAME;
 $logoPath     = $settings['logo_path']     ?? '';
-$primaryColor = $settings['primary_color'] ?? '#1a7aa8';
+$primaryColor = $settings['primary_color'] ?? '#0e4f6c';
 
-// Busca o formulário pelo slug
+// Busca ou cria o formulário no banco
 $form = $db->fetchOne(
     'SELECT * FROM forms WHERE slug = ? LIMIT 1',
     ['autorizacao-venda-exclusividade']
 );
 if (!$form) {
-    $form = $db->fetchOne('SELECT * FROM forms WHERE is_active = 1 ORDER BY id ASC LIMIT 1', []);
+    $db->query(
+        "INSERT INTO forms (title, slug, description, fields, pdf_template, is_active)
+         VALUES (?, ?, ?, ?, ?, 1)",
+        [
+            'Autorização de Venda com Exclusividade',
+            'autorizacao-venda-exclusividade',
+            'Contrato de autorização de venda de imóvel para a A4 Imobiliária.',
+            '[]',
+            'authorization',
+        ]
+    );
+    $form = $db->fetchOne('SELECT * FROM forms WHERE slug = ? LIMIT 1', ['autorizacao-venda-exclusividade']);
 }
 if (!$form) {
-    http_response_code(404);
-    die('<h2 style="font-family:sans-serif;padding:40px">Formulário não encontrado. Execute o instalador primeiro.</h2>');
+    http_response_code(500);
+    die('<h2 style="font-family:sans-serif;padding:40px">Erro ao carregar formulário. Verifique o banco de dados.</h2>');
 }
 
 $success = isset($_GET['sucesso']);
@@ -43,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
     if (!validateCSRF($csrfToken)) {
         $errors[] = 'Token de segurança inválido. Recarregue a página e tente novamente.';
     } else {
-        // ── Campos fixos mapeados no template PDF ──────────────────────────
         $textFields = [
             // Contratante
             'nome_razao_social', 'sexo', 'data_nascimento', 'rg', 'orgao_expedidor',
@@ -53,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
             'telefone_fixo', 'celular',
             'endereco_comercial', 'bairro_comercial', 'cidade_uf_comercial', 'cep_comercial',
             'emails',
+            // Exclusividade
+            'com_exclusividade',
             // Imóvel
             'situacao_imovel',
             'endereco_imovel', 'bairro_imovel', 'cidade_uf_imovel', 'cep_imovel',
@@ -66,6 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
             'porcentagem_comissao', 'prazo_exclusividade', 'formas_pagamento',
             // Assinatura
             'nome_corretor',
+            'testemunha_1_nome', 'testemunha_1_cpf',
+            'testemunha_2_nome', 'testemunha_2_cpf',
         ];
 
         $data = [];
@@ -75,49 +89,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
 
         // Tipo de imóvel (checkboxes múltiplos)
         $tipos = $_POST['tipo_imovel'] ?? [];
-        $data['tipo_imovel'] = is_array($tipos)
-            ? implode(', ', array_map('trim', $tipos))
-            : '';
-
-        // ── Campos extras adicionados pelo admin (dinâmicos) ───────────────
-        // Lê os campos cadastrados no banco e captura os que não estão na lista fixa
-        $fixedFieldSet   = array_flip($textFields);
-        $fixedFieldSet['tipo_imovel'] = true;
-        $fixedFieldSet[CSRF_TOKEN_NAME] = true; // ignora token CSRF
-
-        $extraFields = decodeFields($form['fields'] ?? '[]');
-        foreach ($extraFields as $ef) {
-            $efName = preg_replace('/[^a-zA-Z0-9_]/', '', $ef['name'] ?? '');
-            if ($efName === '' || isset($fixedFieldSet[$efName])) {
-                continue; // já capturado acima ou nome inválido
-            }
-            $efType = $ef['type'] ?? 'text';
-            if ($efType === 'file') {
-                // Arquivos extras tratados abaixo (na seção de uploads)
-                continue;
-            } elseif ($efType === 'checkbox') {
-                $raw = $_POST[$efName] ?? [];
-                $data[$efName] = is_array($raw)
-                    ? implode(', ', array_map('trim', $raw))
-                    : (trim((string)$raw) !== '' ? trim((string)$raw) : '');
-            } else {
-                $data[$efName] = mb_substr(trim(strip_tags($_POST[$efName] ?? '')), 0, 2000);
-            }
-        }
+        $data['tipo_imovel'] = is_array($tipos) ? implode(', ', array_map('trim', $tipos)) : '';
 
         // Validações mínimas
         if (empty($data['nome_razao_social'])) {
             $errors[] = 'Nome / Razão Social é obrigatório.';
         }
         if (empty($data['cpf']) && empty($data['cnpj'])) {
-            $errors[] = 'Informe CPF ou CNPJ.';
+            $errors[] = 'Informe o CPF ou CNPJ.';
         }
         if (empty($data['endereco_imovel'])) {
             $errors[] = 'Endereço do imóvel é obrigatório.';
         }
 
         if (empty($errors)) {
-            // Processa uploads de documentos fixos
+            // Uploads
             $docFields = ['doc_cpf_rg', 'doc_iptu', 'doc_matricula', 'doc_outros'];
             foreach ($docFields as $docField) {
                 $uploadedFile = $_FILES[$docField] ?? null;
@@ -126,22 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
                     $data[$docField] = $savedName ? 'docs/' . $savedName : '';
                 } else {
                     $data[$docField] = '';
-                }
-            }
-
-            // Processa uploads de campos extras (type=file) adicionados pelo admin
-            $fixedDocSet = array_flip($docFields);
-            foreach ($extraFields as $ef) {
-                $efName = preg_replace('/[^a-zA-Z0-9_]/', '', $ef['name'] ?? '');
-                if ($efName === '' || isset($fixedDocSet[$efName]) || ($ef['type'] ?? '') !== 'file') {
-                    continue;
-                }
-                $uploadedFile = $_FILES[$efName] ?? null;
-                if ($uploadedFile && $uploadedFile['error'] === UPLOAD_ERR_OK && $uploadedFile['size'] > 0) {
-                    $savedName = uploadFile($uploadedFile, DOCS_PATH, ALLOWED_DOC_TYPES);
-                    $data[$efName] = $savedName ? 'docs/' . $savedName : '';
-                } else {
-                    $data[$efName] = '';
                 }
             }
 
@@ -164,7 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
                     'created_at' => date('Y-m-d H:i:s'),
                     'ip_address' => $ip,
                 ];
-                // Força o template de autorização de venda
                 $formForPdf = $form;
                 $formForPdf['pdf_template'] = 'authorization';
                 $pdfRelPath = generatePDF($formForPdf, $submission, $settings);
@@ -172,10 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
                     $db->query('UPDATE submissions SET pdf_path = ? WHERE id = ?', [$pdfRelPath, $submId]);
                 }
             } catch (Exception $e) {
-                error_log('[FORMA4 PDF] ' . $e->getMessage());
+                error_log('[FORMA4 PDF VENDA] ' . $e->getMessage());
             }
 
-            // Envia e-mail
+            // E-mail
             try {
                 require_once __DIR__ . '/includes/mailer.php';
                 $submission['pdf_path'] = $pdfRelPath;
@@ -184,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
                     $db->query('UPDATE submissions SET email_sent = 1 WHERE id = ?', [$submId]);
                 }
             } catch (Exception $e) {
-                error_log('[FORMA4 MAIL] ' . $e->getMessage());
+                error_log('[FORMA4 MAIL VENDA] ' . $e->getMessage());
             }
 
             header('Location: ' . APP_URL . '/autorizacao-venda.php?sucesso=1');
@@ -199,20 +168,16 @@ if ($logoPath && is_file(LOGO_PATH . DIRECTORY_SEPARATOR . $logoPath)) {
     $logoSrc = APP_URL . '/uploads/logos/' . rawurlencode($logoPath);
 }
 
-// Helper de repopulação
 $old = $_POST ?? [];
-function fv(string $key, string $default = ''): string
-{
+function fv(string $key, string $default = ''): string {
     global $old;
     return htmlspecialchars($old[$key] ?? $default, ENT_QUOTES, 'UTF-8');
 }
-function fRadio(string $name, string $value): string
-{
+function fRadio(string $name, string $value): string {
     global $old;
     return ($old[$name] ?? '') === $value ? 'checked' : '';
 }
-function fCheck(string $name, string $value): string
-{
+function fCheck(string $name, string $value): string {
     global $old;
     $arr = $old[$name] ?? [];
     return is_array($arr) && in_array($value, $arr, true) ? 'checked' : '';
@@ -243,15 +208,14 @@ function fCheck(string $name, string $value): string
             padding: 20px 10px 60px;
         }
 
-        /* ── Container ── */
         .doc-wrap {
-            max-width: 920px;
+            max-width: 940px;
             margin: 0 auto;
             background: #fff;
             box-shadow: 0 4px 40px rgba(0,0,0,.18);
         }
 
-        /* ── Banner header ── */
+        /* ── Banner ── */
         .doc-header {
             background: linear-gradient(100deg, #0a3d52 0%, #0e6382 45%, #1994b5 100%);
             display: flex;
@@ -271,59 +235,38 @@ function fCheck(string $name, string $value): string
             border-radius: 8px;
             padding: 10px 14px;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             min-width: 90px;
         }
         .doc-header .logo-box img { max-height: 68px; max-width: 130px; object-fit: contain; }
         .doc-header .logo-box .logo-text {
-            color: #fff;
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            line-height: 1.1;
-            text-align: center;
+            color: #fff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+            line-height: 1.1; text-align: center;
         }
         .doc-header .logo-box .logo-text span { font-size: 11px; font-weight: 400; display: block; opacity: .8; }
-        .doc-header .doc-title {
-            flex: 1;
-            text-align: center;
-        }
+        .doc-header .doc-title { flex: 1; text-align: center; }
         .doc-title h1 {
-            color: #fff;
-            font-size: 20px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            line-height: 1.3;
+            color: #fff; font-size: 20px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.3;
         }
         .doc-title p { color: rgba(255,255,255,.7); font-size: 11px; margin-top: 4px; }
 
-        /* ── Form body ── */
+        /* ── Body ── */
         .doc-body { padding: 28px 36px 24px; }
 
         /* ── Erros ── */
         .error-box {
-            background: #fff5f5;
-            border: 1px solid #feb2b2;
-            border-radius: 6px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
+            background: #fff5f5; border: 1px solid #feb2b2; border-radius: 6px;
+            padding: 12px 16px; margin-bottom: 20px;
         }
         .error-box p { color: #c53030; font-size: 13px; line-height: 1.7; }
 
         /* ── Seção ── */
         .section { margin-bottom: 22px; }
         .section-title {
-            font-size: 12.5px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            color: var(--text);
-            border-bottom: 2px solid var(--text);
-            padding-bottom: 5px;
-            margin-bottom: 0;
+            font-size: 12.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .6px; color: var(--text);
+            border-bottom: 2px solid var(--text); padding-bottom: 5px; margin-bottom: 0;
         }
 
         /* ── Grade de campos ── */
@@ -331,200 +274,118 @@ function fCheck(string $name, string $value): string
         .fr { display: flex; border-bottom: 1px solid var(--border); }
         .fr:last-child { border-bottom: none; }
         .fc {
-            flex: 1;
-            border-right: 1px solid var(--border);
-            padding: 4px 8px 5px;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
+            flex: 1; border-right: 1px solid var(--border);
+            padding: 4px 8px 5px; min-width: 0; display: flex; flex-direction: column;
         }
         .fc:last-child { border-right: none; }
         .fc label {
-            font-size: 9.5px;
-            color: var(--label);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            white-space: nowrap;
-            margin-bottom: 1px;
+            font-size: 9.5px; color: var(--label); font-weight: 600;
+            text-transform: uppercase; letter-spacing: .3px; white-space: nowrap; margin-bottom: 1px;
         }
-        .fc input[type=text],
-        .fc input[type=email],
-        .fc input[type=date],
-        .fc input[type=number] {
-            border: none;
-            outline: none;
-            font-size: 13px;
-            font-family: 'Inter', sans-serif;
-            color: var(--text);
-            background: transparent;
-            width: 100%;
-            padding: 2px 0;
+        .fc input[type=text], .fc input[type=email],
+        .fc input[type=date], .fc input[type=number] {
+            border: none; outline: none; font-size: 13px;
+            font-family: 'Inter', sans-serif; color: var(--text);
+            background: transparent; width: 100%; padding: 2px 0;
         }
         .fc textarea {
-            border: none;
-            outline: none;
-            font-size: 12.5px;
-            font-family: 'Inter', sans-serif;
-            color: var(--text);
-            background: transparent;
-            width: 100%;
-            resize: none;
-            min-height: 54px;
-            padding: 2px 0;
+            border: none; outline: none; font-size: 12.5px;
+            font-family: 'Inter', sans-serif; color: var(--text);
+            background: transparent; width: 100%; resize: none; min-height: 54px; padding: 2px 0;
         }
+        .fc-xs   { flex: 0 0 80px;  }
+        .fc-sm   { flex: 0 0 140px; }
+        .fc-md   { flex: 0 0 200px; }
+        .fc-lg   { flex: 0 0 260px; }
+        .fc-full { flex: 1 1 100%;  }
 
-        /* Tamanhos de coluna */
-        .fc-xs  { flex: 0 0 80px;  }
-        .fc-sm  { flex: 0 0 140px; }
-        .fc-md  { flex: 0 0 200px; }
-        .fc-lg  { flex: 0 0 260px; }
-        .fc-full{ flex: 1 1 100%;  }
-
-        /* ── Checkboxes / radios ── */
+        /* ── Checkbox / radio rows ── */
         .check-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px 18px;
+            display: flex; flex-wrap: wrap; gap: 6px 16px;
             padding: 7px 10px;
-            border-bottom: 1px solid var(--border);
-            border-left: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            background: #fff;
-            align-items: center;
+            border: 1px solid var(--border); border-top: none;
+            background: #fff; align-items: center;
         }
-        .check-row:first-child { border-top: 1px solid var(--border); }
+        .check-row.first { border-top: 1px solid var(--border); }
         .check-row label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            color: var(--text);
-            cursor: pointer;
-            white-space: nowrap;
+            display: flex; align-items: center; gap: 5px;
+            font-size: 12px; color: var(--text); cursor: pointer; white-space: nowrap;
         }
-        .check-row input[type=checkbox],
-        .check-row input[type=radio] {
-            width: 13px;
-            height: 13px;
-            cursor: pointer;
-            accent-color: var(--primary);
+        .check-row input[type=checkbox], .check-row input[type=radio] {
+            width: 13px; height: 13px; cursor: pointer; accent-color: var(--primary);
         }
         .check-row .row-label {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--label);
-            text-transform: uppercase;
-            letter-spacing: .3px;
-            margin-right: 6px;
+            font-size: 10px; font-weight: 700; color: var(--label);
+            text-transform: uppercase; letter-spacing: .3px; margin-right: 4px;
         }
 
-        /* ── Texto legal ── */
-        .legal {
-            font-size: 11.5px;
-            line-height: 1.85;
-            color: #374151;
-            text-align: justify;
-            margin: 16px 0;
-            padding: 14px 16px;
-            background: #f8fafc;
-            border-left: 3px solid var(--primary);
+        /* ── Exclusividade ── */
+        .exclusividade-bar {
+            display: flex; align-items: center; gap: 24px; padding: 10px 14px;
+            background: linear-gradient(90deg,#e8f4fd,#f0f9ff);
+            border: 2px solid var(--primary); border-radius: 6px; margin-bottom: 20px;
         }
-        .legal strong { font-weight: 700; }
+        .exclusividade-bar .exc-label {
+            font-size: 13px; font-weight: 700; color: var(--primary);
+            text-transform: uppercase; letter-spacing: .4px;
+        }
+        .exclusividade-bar label {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+        }
+        .exclusividade-bar input[type=radio] { width: 15px; height: 15px; accent-color: var(--primary); }
+
+        /* ── Legal ── */
+        .legal {
+            font-size: 11.5px; line-height: 1.85; color: #374151;
+            text-align: justify; margin: 16px 0; padding: 14px 16px;
+            background: #f8fafc; border-left: 3px solid var(--primary);
+        }
 
         /* ── Cláusulas ── */
-        .clauses { margin: 12px 0; }
-        .clause {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 8px;
-            font-size: 11.5px;
-            line-height: 1.8;
-            color: #374151;
-            text-align: justify;
-        }
+        .clause { display: flex; gap: 10px; margin-bottom: 8px; font-size: 11.5px; line-height: 1.8; color: #374151; text-align: justify; }
         .clause-letter { font-weight: 700; flex-shrink: 0; }
 
         /* ── Assinaturas ── */
-        .sign-date {
-            text-align: right;
-            font-size: 13px;
-            margin: 24px 0 28px;
-            color: #374151;
-        }
-        .signatures {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 28px 48px;
-            margin-bottom: 24px;
-        }
+        .signatures { display: flex; flex-wrap: wrap; gap: 28px 44px; margin-bottom: 24px; }
         .sig-block { min-width: 180px; flex: 1; text-align: center; }
-        .sig-line { border-top: 1px solid #374151; margin-bottom: 6px; padding-top: 3px; }
+        .sig-line { border-top: 1px solid #374151; margin-bottom: 5px; padding-top: 2px; }
         .sig-title { font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .sig-sub { font-size: 10px; color: #64748b; font-style: italic; }
-        .sig-input {
-            border: none; outline: none;
-            font-family: 'Inter', sans-serif;
-            font-size: 12px;
-            color: var(--text);
-            background: transparent;
-            text-align: center;
-            width: 100%;
-            border-bottom: 1px dashed #b0bec5;
-            margin-bottom: 3px;
-            padding: 1px 4px;
-        }
 
-        /* ── Rodapé do documento ── */
+        /* ── Uploads ── */
+        .docs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+        .doc-upload-item { background: #f8fafc; border: 1px dashed #b0bec5; border-radius: 6px; padding: 12px 14px; }
+        .doc-upload-item label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--label); display: block; margin-bottom: 6px; }
+        .doc-upload-item input[type=file] { font-size: 12px; width: 100%; color: #374151; }
+        .doc-upload-item p { font-size: 10px; color: #94a3b8; margin-top: 4px; }
+
+        /* ── Footer doc ── */
         .doc-footer-bar {
-            background: #0a3d52;
-            color: rgba(255,255,255,.8);
-            font-size: 10.5px;
-            text-align: center;
-            padding: 10px 20px;
-            line-height: 1.7;
+            background: #0a3d52; color: rgba(255,255,255,.8);
+            font-size: 10.5px; text-align: center; padding: 10px 20px; line-height: 1.7;
         }
         .doc-footer-bar a { color: rgba(255,255,255,.85); }
 
-        /* ── Botão submit ── */
+        /* ── Submit ── */
         .form-actions {
-            padding: 20px 36px;
-            border-top: 1px solid #e2e8f0;
-            background: #f8fafc;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
+            padding: 20px 36px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+            display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
         }
         .form-actions p { font-size: 12px; color: #64748b; }
         .btn-enviar {
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            padding: 14px 44px;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: 7px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            letter-spacing: .3px;
-            transition: opacity .15s;
+            background: var(--primary); color: #fff; border: none; padding: 14px 44px;
+            font-size: 15px; font-weight: 600; border-radius: 7px; cursor: pointer;
+            font-family: 'Inter', sans-serif; letter-spacing: .3px; transition: opacity .15s;
         }
         .btn-enviar:hover { opacity: .88; }
 
         /* ── Sucesso ── */
-        .success-wrap {
-            text-align: center;
-            padding: 70px 40px;
-        }
+        .success-wrap { text-align: center; padding: 70px 40px; }
         .success-icon {
-            width: 72px; height: 72px;
-            background: #dcfce7;
-            border-radius: 50%;
+            width: 72px; height: 72px; background: #dcfce7; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 30px;
+            margin: 0 auto 20px; font-size: 30px;
         }
         .success-wrap h2 { font-size: 24px; font-weight: 700; color: #15803d; margin-bottom: 8px; }
         .success-wrap p { color: #64748b; font-size: 14px; line-height: 1.7; }
@@ -537,8 +398,9 @@ function fCheck(string $name, string $value): string
             .form-actions { flex-direction: column; }
             .btn-enviar { width: 100%; }
             .fr { flex-direction: column; }
-            .fc-xs, .fc-sm, .fc-md, .fc-lg { flex: 1 1 100%; }
+            .fc-xs,.fc-sm,.fc-md,.fc-lg { flex: 1 1 100%; }
             .signatures { flex-direction: column; }
+            .docs-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -546,7 +408,7 @@ function fCheck(string $name, string $value): string
 
 <div class="doc-wrap">
 
-    <!-- ===================== HEADER BANNER ===================== -->
+    <!-- BANNER -->
     <div class="doc-header">
         <div class="logo-box">
             <?php if ($logoSrc): ?>
@@ -562,7 +424,7 @@ function fCheck(string $name, string $value): string
     </div>
 
     <?php if ($success): ?>
-    <!-- ===================== SUCESSO ===================== -->
+    <!-- SUCESSO -->
     <div class="success-wrap">
         <div class="success-icon">✓</div>
         <h2>Autorização enviada com sucesso!</h2>
@@ -573,7 +435,7 @@ function fCheck(string $name, string $value): string
     </div>
 
     <?php else: ?>
-    <!-- ===================== FORMULÁRIO ===================== -->
+    <!-- FORMULÁRIO -->
     <form method="POST" action="" enctype="multipart/form-data" novalidate>
         <?= csrfField() ?>
 
@@ -587,9 +449,18 @@ function fCheck(string $name, string $value): string
             </div>
             <?php endif; ?>
 
-            <!-- ═══════════════════════════════════════
-                 DADOS DO CONTRATANTE
-            ═══════════════════════════════════════ -->
+            <!-- ⭐ COM EXCLUSIVIDADE? -->
+            <div class="exclusividade-bar" style="margin-bottom:22px;">
+                <span class="exc-label">&#9733; Com Exclusividade?</span>
+                <label>
+                    <input type="radio" name="com_exclusividade" value="Sim" <?= fRadio('com_exclusividade','Sim') ?>> Sim
+                </label>
+                <label>
+                    <input type="radio" name="com_exclusividade" value="Não" <?= fRadio('com_exclusividade','Não') ?>> Não
+                </label>
+            </div>
+
+            <!-- ═══ DADOS DO CONTRATANTE ═══ -->
             <div class="section">
                 <div class="section-title">Dados do Contratante</div>
 
@@ -602,13 +473,12 @@ function fCheck(string $name, string $value): string
                         </div>
                         <div class="fc fc-md" style="justify-content:flex-end;">
                             <label>Sexo</label>
-                            <div style="display:flex;gap:14px;padding:3px 0;font-size:12px;color:var(--text);align-items:center;">
+                            <div style="display:flex;gap:14px;padding:3px 0;align-items:center;">
+                                <?php foreach(['Masculino','Feminino'] as $s): ?>
                                 <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);font-weight:400">
-                                    <input type="radio" name="sexo" value="Masculino" <?= fRadio('sexo','Masculino') ?>> Masculino
+                                    <input type="radio" name="sexo" value="<?= $s ?>" <?= fRadio('sexo',$s) ?>> <?= $s ?>
                                 </label>
-                                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);font-weight:400">
-                                    <input type="radio" name="sexo" value="Feminino" <?= fRadio('sexo','Feminino') ?>> Feminino
-                                </label>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
@@ -659,7 +529,7 @@ function fCheck(string $name, string $value): string
                 </div>
 
                 <!-- Estado Civil -->
-                <div class="check-row">
+                <div class="check-row first">
                     <span class="row-label">Estado Civil:</span>
                     <?php foreach (['Solteiro','Casado','União Estável','Viúvo','Divorciado','Separado judicialmente'] as $ec): ?>
                     <label>
@@ -704,7 +574,7 @@ function fCheck(string $name, string $value): string
                         </div>
                     </div>
 
-                    <!-- Telefone / Celular -->
+                    <!-- Tel / Celular -->
                     <div class="fr">
                         <div class="fc fc-full">
                             <label>Telefone Fixo</label>
@@ -746,28 +616,26 @@ function fCheck(string $name, string $value): string
                         </div>
                     </div>
                 </div>
-            </div><!-- /section contratante -->
+            </div><!-- /contratante -->
 
-            <!-- Parágrafo legal do contratante -->
+            <!-- Parágrafo legal -->
             <div class="legal">
-                O CONTRATANTE acima, proprietário e legítimo possuidor de um imóvel abaixo relacionado, contrata a
-                <strong><?= e($appName) ?></strong>, inscrita no CRECI, para promover de forma
-                <strong>EXCLUSIVA</strong> a <strong>VENDA</strong> do seu imóvel acima descrito, pelo prazo mínimo de
-                <strong class="prazo-ref">(     )</strong> dias, prorrogáveis automaticamente por período igual e sucessivo,
-                até que uma das partes se manifeste em contrário, por escrito, pelo preço e condições estipuladas nesta autorização de <strong>VENDA</strong>.
+                O CONTRATANTE acima, proprietário e legítimo possuidor do imóvel abaixo relacionado, contrata a
+                <strong><?= e($appName) ?></strong>, inscrita no Conselho Regional dos corretores de imóveis com o nº 218 PJ,
+                para promover de forma <strong>EXCLUSIVA</strong> a <strong>VENDA</strong> do seu imóvel acima descrito,
+                pelo prazo mínimo de <strong class="prazo-ref">(     )</strong> dias, prorrogável automaticamente por período
+                igual e sucessivo, até que uma das partes se manifeste em contrário, por escrito, pelo preço e condições
+                estipuladas nesta autorização de <strong>VENDA</strong>.
             </div>
 
-            <!-- ═══════════════════════════════════════
-                 DADOS DO IMÓVEL
-            ═══════════════════════════════════════ -->
+            <!-- ═══ DADOS DO IMÓVEL ═══ -->
             <div class="section">
                 <div class="section-title">Dados do Imóvel</div>
 
-                <!-- Tipo do imóvel -->
-                <div class="check-row">
-                    <?php
-                    $tipos = ['Apartamento','Casa Residencial','Prédio Comercial','Galpão','Terreno','Sala/Loja Comercial','Chácara/Sítio'];
-                    foreach ($tipos as $t): ?>
+                <!-- Tipo -->
+                <div class="check-row first">
+                    <span class="row-label">Tipo:</span>
+                    <?php foreach (['Apartamento','Casa Residencial','Prédio Comercial','Galpão','Terreno','Sala/Loja Comercial'] as $t): ?>
                     <label>
                         <input type="checkbox" name="tipo_imovel[]" value="<?= e($t) ?>" <?= fCheck('tipo_imovel',$t) ?>>
                         <?= e($t) ?>
@@ -778,10 +646,10 @@ function fCheck(string $name, string $value): string
                 <!-- Situação -->
                 <div class="check-row">
                     <span class="row-label">Situação:</span>
-                    <?php foreach (['Habitado pelo proprietário','Habitado por inquilino','Desocupado','Em construção'] as $s): ?>
+                    <?php foreach (['Habitado pelo proprietário','Habitado por inquilino','Desocupado','Em construção'] as $sit): ?>
                     <label>
-                        <input type="radio" name="situacao_imovel" value="<?= e($s) ?>" <?= fRadio('situacao_imovel',$s) ?>>
-                        <?= e($s) ?>
+                        <input type="radio" name="situacao_imovel" value="<?= e($sit) ?>" <?= fRadio('situacao_imovel',$sit) ?>>
+                        <?= e($sit) ?>
                     </label>
                     <?php endforeach; ?>
                 </div>
@@ -789,7 +657,7 @@ function fCheck(string $name, string $value): string
                 <div class="fg">
                     <div class="fr">
                         <div class="fc fc-full">
-                            <label>Endereço do Imóvel <span style="color:#c0392b">*</span></label>
+                            <label>Endereço <span style="color:#c0392b">*</span></label>
                             <input type="text" name="endereco_imovel" value="<?= fv('endereco_imovel') ?>" required>
                         </div>
                     </div>
@@ -824,11 +692,9 @@ function fCheck(string $name, string $value): string
                         </div>
                     </div>
                 </div>
-            </div><!-- /dados imóvel -->
+            </div><!-- /imóvel -->
 
-            <!-- ═══════════════════════════════════════
-                 DESCRIÇÃO DO IMÓVEL
-            ═══════════════════════════════════════ -->
+            <!-- ═══ DESCRIÇÃO DO IMÓVEL ═══ -->
             <div class="section">
                 <div class="section-title">Descrição do Imóvel</div>
 
@@ -852,44 +718,40 @@ function fCheck(string $name, string $value): string
                         </div>
                         <div class="fc fc-full">
                             <label>Área Privativa (m²)</label>
-                            <input type="text" name="area_privativa" value="<?= fv('area_privativa') ?>" placeholder="0,00">
+                            <input type="number" name="area_privativa" value="<?= fv('area_privativa') ?>" min="0" step="0.01">
                         </div>
                     </div>
-                </div>
-
-                <!-- Sim/Não -->
-                <div class="check-row">
-                    <span class="row-label">Tem varanda?</span>
-                    <label><input type="radio" name="tem_varanda" value="Sim" <?= fRadio('tem_varanda','Sim') ?>> Sim</label>
-                    <label><input type="radio" name="tem_varanda" value="Não" <?= fRadio('tem_varanda','Não') ?>> Não</label>
-                    &nbsp;&nbsp;&nbsp;
-                    <span class="row-label">Tem elevador?</span>
-                    <label><input type="radio" name="tem_elevador" value="Sim" <?= fRadio('tem_elevador','Sim') ?>> Sim</label>
-                    <label><input type="radio" name="tem_elevador" value="Não" <?= fRadio('tem_elevador','Não') ?>> Não</label>
-                </div>
-                <div class="check-row">
-                    <span class="row-label">Lazer completo?</span>
-                    <label><input type="radio" name="lazer_completo" value="Sim" <?= fRadio('lazer_completo','Sim') ?>> Sim</label>
-                    <label><input type="radio" name="lazer_completo" value="Não" <?= fRadio('lazer_completo','Não') ?>> Não</label>
-                    &nbsp;&nbsp;&nbsp;
-                    <span class="row-label">Garagem coberta?</span>
-                    <label><input type="radio" name="garagem_coberta" value="Sim" <?= fRadio('garagem_coberta','Sim') ?>> Sim</label>
-                    <label><input type="radio" name="garagem_coberta" value="Não" <?= fRadio('garagem_coberta','Não') ?>> Não</label>
-                </div>
-
-                <div class="fg">
+                    <div class="fr">
+                        <?php
+                        $boolFields = [
+                            ['tem_varanda',   'Varanda?'],
+                            ['tem_elevador',  'Elevador?'],
+                            ['lazer_completo','Lazer Completo?'],
+                            ['garagem_coberta','Garagem Coberta?'],
+                        ];
+                        foreach ($boolFields as [$fname, $flabel]): ?>
+                        <div class="fc fc-full">
+                            <label><?= $flabel ?></label>
+                            <div style="display:flex;gap:12px;padding:3px 0;">
+                                <?php foreach(['Sim','Não'] as $v): ?>
+                                <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text);font-weight:400">
+                                    <input type="radio" name="<?= $fname ?>" value="<?= $v ?>" <?= fRadio($fname,$v) ?>> <?= $v ?>
+                                </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                     <div class="fr">
                         <div class="fc fc-full">
-                            <label>Observações sobre as descrições</label>
-                            <textarea name="obs_descricao" rows="3"><?= fv('obs_descricao') ?></textarea>
+                            <label>Observações sobre as descrições do imóvel</label>
+                            <textarea name="obs_descricao" rows="2"><?= fv('obs_descricao') ?></textarea>
                         </div>
                     </div>
                 </div>
             </div><!-- /descrição -->
 
-            <!-- ═══════════════════════════════════════
-                 CONDIÇÕES PRETENDIDAS
-            ═══════════════════════════════════════ -->
+            <!-- ═══ CONDIÇÕES PRETENDIDAS ═══ -->
             <div class="section">
                 <div class="section-title">Condições Pretendidas</div>
 
@@ -900,14 +762,14 @@ function fCheck(string $name, string $value): string
                             <input type="text" name="valor_minimo_venda" value="<?= fv('valor_minimo_venda') ?>" placeholder="0,00">
                         </div>
                         <div class="fc fc-full">
-                            <label>Valor por extenso</label>
-                            <input type="text" name="valor_minimo_extenso" value="<?= fv('valor_minimo_extenso') ?>" placeholder="Reais">
+                            <label>Por Extenso</label>
+                            <input type="text" name="valor_minimo_extenso" value="<?= fv('valor_minimo_extenso') ?>" placeholder="Ex: duzentos mil reais">
                         </div>
                     </div>
                     <div class="fr">
                         <div class="fc fc-full">
                             <label>Observações do Preço</label>
-                            <textarea name="obs_preco" rows="2"><?= fv('obs_preco') ?></textarea>
+                            <input type="text" name="obs_preco" value="<?= fv('obs_preco') ?>">
                         </div>
                     </div>
                     <div class="fr">
@@ -916,230 +778,98 @@ function fCheck(string $name, string $value): string
                             <input type="text" name="valor_condominio" value="<?= fv('valor_condominio') ?>" placeholder="0,00">
                         </div>
                         <div class="fc fc-full">
-                            <label>Valor por extenso</label>
+                            <label>Por Extenso</label>
                             <input type="text" name="valor_condominio_extenso" value="<?= fv('valor_condominio_extenso') ?>">
+                        </div>
+                    </div>
+                    <div class="fr">
+                        <div class="fc fc-full">
+                            <label>Formas de Pagamento</label>
+                            <input type="text" name="formas_pagamento" value="<?= fv('formas_pagamento') ?>" placeholder="Ex: financiamento, à vista, permuta...">
                         </div>
                     </div>
                     <div class="fr">
                         <div class="fc fc-sm">
                             <label>Comissão (%)</label>
-                            <input type="text" name="porcentagem_comissao" value="<?= fv('porcentagem_comissao') ?>" placeholder="6">
+                            <input type="number" name="porcentagem_comissao" value="<?= fv('porcentagem_comissao') ?>" min="0" max="100" step="0.1" placeholder="Ex: 6">
                         </div>
                         <div class="fc fc-sm">
-                            <label>Prazo de Exclusividade (dias)</label>
-                            <input type="number" name="prazo_exclusividade" value="<?= fv('prazo_exclusividade') ?>" min="1" placeholder="90">
+                            <label>Prazo Exclusividade (dias)</label>
+                            <input type="number" name="prazo_exclusividade" value="<?= fv('prazo_exclusividade') ?>" min="0" placeholder="Ex: 90">
                         </div>
                         <div class="fc fc-full">
-                            <label>Formas de Pagamento Aceitas</label>
-                            <input type="text" name="formas_pagamento" value="<?= fv('formas_pagamento') ?>" placeholder="Financiamento, à vista, permuta...">
+                            <label>Nome do Corretor(a)</label>
+                            <input type="text" name="nome_corretor" value="<?= fv('nome_corretor') ?>">
                         </div>
                     </div>
                 </div>
-
-                <!-- Cláusulas -->
-                <div class="clauses" style="margin-top:14px;">
-                    <div class="clause">
-                        <span class="clause-letter">a)</span>
-                        <span>Sobre o valor da <strong>VENDA</strong> do imóvel contratado, o CONTRATANTE pagará a CONTRATADA o percentual de comissão acordado, pagamento esse que deverá ser feito no ato do recebimento dos valores da referida negociação.</span>
-                    </div>
-                    <div class="clause">
-                        <span class="clause-letter">b)</span>
-                        <span>Nos termos do presente, o(a) CONTRATANTE autoriza à <strong><?= e($appName) ?></strong> a ofertar publicamente o imóvel de sua propriedade acima descrito, cuja às custas serão de responsabilidade da CONTRATADA, fotografar o imóvel e suas dependências internas fazendo se publicar as fotos nos veículos e meios de comunicação que desejar, inclusive na internet, afixar placas, faixas ou letreiros no imóvel, realizar visitações e demonstrações aos interessados.</span>
-                    </div>
-                    <div class="clause">
-                        <span class="clause-letter">c)</span>
-                        <span>O Proprietário declara que o dito imóvel encontra-se livre e desembaraçado de quaisquer ônus ou restrições que impeçam sua <strong>VENDA</strong>, comprometendo-se em apresentar às suas custas a documentação exigida em transações de VENDA, tão logo que solicitado.</span>
-                    </div>
-                </div>
-
-                <p style="font-size:12px;color:#374151;text-align:justify;margin-top:14px;line-height:1.8;">
-                    E por estarem de pleno acordo, assinam a presente opção em 02 (duas) vias de igual teor, na presença de duas testemunhas,
-                    ficando eleito o foro da comarca de Aracaju para dirimir qualquer dúvida que venha a ocorrer.
-                </p>
             </div><!-- /condições -->
 
-            <!-- ═══════════════════════════════════════
-                 DATA E ASSINATURAS
-            ═══════════════════════════════════════ -->
-            <div class="sign-date">
-                Aracaju, &nbsp;_____&nbsp; de &nbsp;____________________&nbsp; de &nbsp;<?= date('Y') ?>.
-            </div>
-
-            <div class="signatures">
-                <div class="sig-block">
-                    <p style="font-size:10px;color:#64748b;margin-bottom:4px;">Nome do contratante</p>
-                    <input class="sig-input" type="text" name="assinatura_contratante" value="<?= fv('assinatura_contratante') ?>" placeholder="Nome completo">
-                    <div class="sig-line"></div>
-                    <div class="sig-title">CONTRATANTE</div>
-                </div>
-                <div class="sig-block">
-                    <p style="font-size:10px;color:#64748b;margin-bottom:4px;">Nome do cônjuge</p>
-                    <input class="sig-input" type="text" name="assinatura_conjuge" value="<?= fv('assinatura_conjuge') ?>" placeholder="Se aplicável">
-                    <div class="sig-line"></div>
-                    <div class="sig-title">CONTRATANTE</div>
-                    <div class="sig-sub">Cônjuge</div>
-                </div>
-                <div class="sig-block" style="min-width:220px;">
-                    <p style="font-size:10px;color:#64748b;margin-bottom:4px;">&nbsp;</p>
-                    <div style="height:22px;">&nbsp;</div>
-                    <div class="sig-line"></div>
-                    <div class="sig-title"><?= e($appName) ?></div>
-                    <div class="sig-sub">Contratada</div>
-                </div>
-                <div class="sig-block">
-                    <p style="font-size:10px;color:#64748b;margin-bottom:4px;">Nome do corretor</p>
-                    <input class="sig-input" type="text" name="nome_corretor" value="<?= fv('nome_corretor') ?>" placeholder="Nome do corretor">
-                    <div class="sig-line"></div>
-                    <div class="sig-title">CORRETOR(A)</div>
-                    <div class="sig-sub">Credenciado</div>
-                </div>
-            </div>
-
-            <!-- Testemunhas -->
-            <p style="font-weight:700;font-size:12px;text-transform:uppercase;margin-bottom:12px;">Testemunhas:</p>
-            <div class="signatures">
-                <div class="sig-block">
-                    <input class="sig-input" type="text" name="testemunha_1_nome" value="<?= fv('testemunha_1_nome') ?>" placeholder="Nome completo">
-                    <div class="sig-line"></div>
-                    <div class="sig-sub">CPF: <input style="border:none;outline:none;font-size:11px;width:120px;font-family:Inter,sans-serif;" type="text" name="testemunha_1_cpf" value="<?= fv('testemunha_1_cpf') ?>" placeholder="000.000.000-00" data-mask="cpf"></div>
-                </div>
-                <div class="sig-block">
-                    <input class="sig-input" type="text" name="testemunha_2_nome" value="<?= fv('testemunha_2_nome') ?>" placeholder="Nome completo">
-                    <div class="sig-line"></div>
-                    <div class="sig-sub">CPF: <input style="border:none;outline:none;font-size:11px;width:120px;font-family:Inter,sans-serif;" type="text" name="testemunha_2_cpf" value="<?= fv('testemunha_2_cpf') ?>" placeholder="000.000.000-00" data-mask="cpf"></div>
-                </div>
-            </div>
-
-            <!-- ═══════════════════════════════════════
-                 UPLOAD DE DOCUMENTOS
-            ═══════════════════════════════════════ -->
+            <!-- ═══ TESTEMUNHAS ═══ -->
             <div class="section">
-                <div class="section-title">Documentos (opcional)</div>
-                <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-
-                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
-                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">RG / CPF do Proprietário</label>
-                        <input type="file" name="doc_cpf_rg"
-                               accept=".pdf,.jpg,.jpeg,.png,.webp"
-                               style="font-size:12px;width:100%;color:#374151;">
-                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, JPG ou PNG — máx. 10 MB</p>
-                    </div>
-
-                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
-                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">Carnê / Comprovante de IPTU</label>
-                        <input type="file" name="doc_iptu"
-                               accept=".pdf,.jpg,.jpeg,.png,.webp"
-                               style="font-size:12px;width:100%;color:#374151;">
-                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, JPG ou PNG — máx. 10 MB</p>
-                    </div>
-
-                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
-                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">Matrícula do Imóvel</label>
-                        <input type="file" name="doc_matricula"
-                               accept=".pdf,.jpg,.jpeg,.png,.webp"
-                               style="font-size:12px;width:100%;color:#374151;">
-                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, JPG ou PNG — máx. 10 MB</p>
-                    </div>
-
-                    <div style="background:#f8fafc;border:1px dashed #b0bec5;border-radius:6px;padding:12px 14px;">
-                        <label style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#546e7a;display:block;margin-bottom:6px;">Outros Documentos</label>
-                        <input type="file" name="doc_outros"
-                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-                               style="font-size:12px;width:100%;color:#374151;">
-                        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, Word, JPG ou PNG — máx. 10 MB</p>
-                    </div>
-
-        </div><!-- /docs -->
-
-            <?php
-            // ─── Campos extras adicionados pelo admin (não estão no layout fixo) ────
-            $fixedNamesForm = [
-                'nome_razao_social','sexo','data_nascimento','rg','orgao_expedidor',
-                'cpf','naturalidade','nacionalidade','cnpj','nome_fantasia',
-                'estado_civil','conjuge','telefones',
-                'endereco_residencial','bairro_residencial','cidade_uf_residencial','cep_residencial',
-                'telefone_fixo','celular',
-                'endereco_comercial','bairro_comercial','cidade_uf_comercial','cep_comercial',
-                'emails',
-                'tipo_imovel','situacao_imovel',
-                'endereco_imovel','bairro_imovel','cidade_uf_imovel','cep_imovel',
-                'ponto_referencia','registro_imovel','matricula_iptu',
-                'num_dormitorios','num_salas','num_suites','garagens','area_privativa',
-                'tem_varanda','tem_elevador','lazer_completo','garagem_coberta','obs_descricao',
-                'valor_minimo_venda','valor_minimo_extenso','obs_preco',
-                'valor_condominio','valor_condominio_extenso',
-                'porcentagem_comissao','prazo_exclusividade','formas_pagamento',
-                'nome_corretor','testemunha_1_nome','testemunha_1_cpf','testemunha_2_nome','testemunha_2_cpf',
-                'doc_cpf_rg','doc_iptu','doc_matricula','doc_outros',
-            ];
-            $fixedNamesSet   = array_flip($fixedNamesForm);
-            $allFormFields   = decodeFields($form['fields'] ?? '[]');
-            $extraFormFields = [];
-            foreach ($allFormFields as $ef) {
-                $efn = preg_replace('/[^a-zA-Z0-9_]/', '', $ef['name'] ?? '');
-                if ($efn !== '' && !isset($fixedNamesSet[$efn])) {
-                    $ef['name'] = $efn;
-                    $extraFormFields[] = $ef;
-                }
-            }
-            if (!empty($extraFormFields)): ?>
-            <div class="section" style="margin-top:22px;">
-                <div class="section-title">Campos Adicionais</div>
-                <div class="fg" style="margin-top:0;">
-                    <?php foreach ($extraFormFields as $ef):
-                        $efName  = $ef['name'];
-                        $efLabel = e($ef['label'] ?? $efName);
-                        $efType  = $ef['type'] ?? 'text';
-                        $efReq   = !empty($ef['required']) ? 'required' : '';
-                        $efVal   = fv($efName);
-                    ?>
+                <div class="section-title">Testemunhas</div>
+                <div class="fg">
                     <div class="fr">
                         <div class="fc fc-full">
-                            <label><?= $efLabel ?><?= $efReq ? ' <span style="color:#c0392b">*</span>' : '' ?></label>
-                            <?php if ($efType === 'textarea'): ?>
-                                <textarea name="<?= $efName ?>" <?= $efReq ?>><?= $efVal ?></textarea>
-                            <?php elseif ($efType === 'select'): ?>
-                                <?php $opts = array_filter(array_map('trim', explode(',', $ef['options'] ?? ''))); ?>
-                                <select name="<?= $efName ?>" style="border:none;outline:none;font-size:13px;font-family:inherit;color:var(--text);background:transparent;width:100%;padding:2px 0;" <?= $efReq ?>>
-                                    <option value="">— Selecione —</option>
-                                    <?php foreach ($opts as $opt): ?>
-                                    <option value="<?= e($opt) ?>" <?= $efVal === e($opt) ? 'selected' : '' ?>><?= e($opt) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            <?php elseif ($efType === 'file'): ?>
-                                <input type="file" name="<?= $efName ?>" style="font-size:12px;width:100%;color:var(--text);" <?= $efReq ?>>
-                            <?php elseif ($efType === 'date'): ?>
-                                <input type="date" name="<?= $efName ?>" value="<?= $efVal ?>" <?= $efReq ?>>
-                            <?php elseif ($efType === 'number'): ?>
-                                <input type="number" name="<?= $efName ?>" value="<?= $efVal ?>" <?= $efReq ?>>
-                            <?php elseif ($efType === 'checkbox'): ?>
-                                <div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
-                                    <input type="checkbox" name="<?= $efName ?>" value="1" <?= !empty($old[$efName]) ? 'checked' : '' ?>>
-                                    <span style="font-size:12px;color:var(--text);"><?= $efLabel ?></span>
-                                </div>
-                            <?php else: ?>
-                                <input type="text" name="<?= $efName ?>" value="<?= $efVal ?>" <?= $efReq ?>>
-                            <?php endif; ?>
+                            <label>Testemunha 1 — Nome</label>
+                            <input type="text" name="testemunha_1_nome" value="<?= fv('testemunha_1_nome') ?>">
+                        </div>
+                        <div class="fc fc-md">
+                            <label>CPF</label>
+                            <input type="text" name="testemunha_1_cpf" value="<?= fv('testemunha_1_cpf') ?>" data-mask="cpf" placeholder="000.000.000-00">
                         </div>
                     </div>
-                    <?php endforeach; ?>
+                    <div class="fr">
+                        <div class="fc fc-full">
+                            <label>Testemunha 2 — Nome</label>
+                            <input type="text" name="testemunha_2_nome" value="<?= fv('testemunha_2_nome') ?>">
+                        </div>
+                        <div class="fc fc-md">
+                            <label>CPF</label>
+                            <input type="text" name="testemunha_2_cpf" value="<?= fv('testemunha_2_cpf') ?>" data-mask="cpf" placeholder="000.000.000-00">
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /testemunhas -->
+
+            <!-- ═══ DOCUMENTOS ANEXOS ═══ -->
+            <div class="section">
+                <div class="section-title">Documentos Anexos <span style="font-weight:400;text-transform:none;font-size:11px;color:#64748b">(opcional)</span></div>
+                <div class="docs-grid">
+                    <div class="doc-upload-item">
+                        <label>RG / CPF do Proprietário</label>
+                        <input type="file" name="doc_cpf_rg" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                        <p>PDF, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+                    <div class="doc-upload-item">
+                        <label>Carnê / Comprovante de IPTU</label>
+                        <input type="file" name="doc_iptu" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                        <p>PDF, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+                    <div class="doc-upload-item">
+                        <label>Matrícula do Imóvel</label>
+                        <input type="file" name="doc_matricula" accept=".pdf,.jpg,.jpeg,.png,.webp">
+                        <p>PDF, JPG ou PNG — máx. 10 MB</p>
+                    </div>
+                    <div class="doc-upload-item">
+                        <label>Outros Documentos</label>
+                        <input type="file" name="doc_outros" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp">
+                        <p>PDF, Word, JPG ou PNG — máx. 10 MB</p>
+                    </div>
                 </div>
             </div>
-            <?php endif; ?>
 
         </div><!-- /.doc-body -->
 
-        <!-- ===================== BOTÃO SUBMIT ===================== -->
+        <!-- SUBMIT -->
         <div class="form-actions">
             <p>Campos marcados com <span style="color:#c0392b">*</span> são obrigatórios.</p>
             <button type="submit" class="btn-enviar">Enviar Autorização</button>
         </div>
 
-
     </form>
     <?php endif; ?>
 
-    <!-- Footer do documento -->
     <div class="doc-footer-bar">
         <?= e($appName) ?> &nbsp;|&nbsp; Av. Hermes Fontes, nº 1524, Bairro Luzia – CEP 49.048.010 – Aracaju/SE
         &nbsp;|&nbsp; (79) 3304-0000 / 99691-0000 &nbsp;|&nbsp;
@@ -1148,7 +878,6 @@ function fCheck(string $name, string $value): string
 </div>
 
 <script>
-/* Máscaras simples */
 document.querySelectorAll('[data-mask]').forEach(function(el) {
     el.addEventListener('input', function() {
         var v = el.value.replace(/\D/g, '');
@@ -1163,16 +892,21 @@ document.querySelectorAll('[data-mask]').forEach(function(el) {
         } else if (el.dataset.mask === 'phone') {
             v = v.slice(0,11);
             if (v.length <= 10) {
-                v = v.replace(/(\d{2})(\d)/, '($1) $2')
-                     .replace(/(\d{4})(\d)/, '$1-$2');
+                v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
             } else {
-                v = v.replace(/(\d{2})(\d)/, '($1) $2')
-                     .replace(/(\d{5})(\d)/, '$1-$2');
+                v = v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
             }
         }
         el.value = v;
     });
 });
+
+document.querySelector('[name="prazo_exclusividade"]')?.addEventListener('input', function() {
+    document.querySelectorAll('.prazo-ref').forEach(function(el) {
+        el.textContent = this.value ? '(' + this.value + ')' : '(     )';
+    }.bind(this));
+});
 </script>
+
 </body>
 </html>
