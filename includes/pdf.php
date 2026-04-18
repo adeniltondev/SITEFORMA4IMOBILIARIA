@@ -344,9 +344,12 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
         $filePath = trim($data[$key] ?? '');
         if ($filePath === '') continue;
         $fileName = e(basename($filePath));
+        $fileUrl  = e(APP_URL . '/uploads/' . ltrim($filePath, '/'));
         $docsRowsAuth .= "<tr>"
             . "<td style='width:35%;'><span class='fl'>{$label}</span></td>"
-            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; {$fileName}</span></td>"
+            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; "
+            . "<a href='{$fileUrl}' style='color:#0e4f6c;text-decoration:underline;'>{$fileName}</a>"
+            . "</span></td>"
             . "</tr>";
     }
     $docsHtmlAuth = $docsRowsAuth !== ''
@@ -781,12 +784,13 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
     foreach ($docLabels as $key => $label) {
         $filePath = trim($data[$key] ?? '');
         if ($filePath === '') continue;
-        // Extrai só o nome do arquivo (sem o prefixo docs/)
         $fileName = e(basename($filePath));
         $fileUrl  = e(APP_URL . '/uploads/' . ltrim($filePath, '/'));
         $docsRows .= "<tr>"
             . "<td style='width:35%;'><span class='fl'>{$label}</span></td>"
-            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; {$fileName}</span></td>"
+            . "<td><span class='fv' style='word-break:break-all;'>&#x1F4CE; "
+            . "<a href='{$fileUrl}' style='color:#0e4f6c;text-decoration:underline;'>{$fileName}</a>"
+            . "</span></td>"
             . "</tr>";
     }
     $docsHtml = $docsRows !== ''
