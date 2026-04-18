@@ -1049,8 +1049,83 @@ function fCheck(string $name, string $value): string
                         <p style="font-size:10px;color:#94a3b8;margin-top:4px;">PDF, Word, JPG ou PNG — máx. 10 MB</p>
                     </div>
 
+        </div><!-- /docs -->
+
+            <?php
+            // ─── Campos extras adicionados pelo admin (não estão no layout fixo) ────
+            $fixedNamesForm = [
+                'nome_razao_social','sexo','data_nascimento','rg','orgao_expedidor',
+                'cpf','naturalidade','nacionalidade','cnpj','nome_fantasia',
+                'estado_civil','conjuge','telefones',
+                'endereco_residencial','bairro_residencial','cidade_uf_residencial','cep_residencial',
+                'telefone_fixo','celular',
+                'endereco_comercial','bairro_comercial','cidade_uf_comercial','cep_comercial',
+                'emails',
+                'tipo_imovel','situacao_imovel',
+                'endereco_imovel','bairro_imovel','cidade_uf_imovel','cep_imovel',
+                'ponto_referencia','registro_imovel','matricula_iptu',
+                'num_dormitorios','num_salas','num_suites','garagens','area_privativa',
+                'tem_varanda','tem_elevador','lazer_completo','garagem_coberta','obs_descricao',
+                'valor_minimo_venda','valor_minimo_extenso','obs_preco',
+                'valor_condominio','valor_condominio_extenso',
+                'porcentagem_comissao','prazo_exclusividade','formas_pagamento',
+                'nome_corretor','testemunha_1_nome','testemunha_1_cpf','testemunha_2_nome','testemunha_2_cpf',
+                'doc_cpf_rg','doc_iptu','doc_matricula','doc_outros',
+            ];
+            $fixedNamesSet   = array_flip($fixedNamesForm);
+            $allFormFields   = decodeFields($form['fields'] ?? '[]');
+            $extraFormFields = [];
+            foreach ($allFormFields as $ef) {
+                $efn = preg_replace('/[^a-zA-Z0-9_]/', '', $ef['name'] ?? '');
+                if ($efn !== '' && !isset($fixedNamesSet[$efn])) {
+                    $ef['name'] = $efn;
+                    $extraFormFields[] = $ef;
+                }
+            }
+            if (!empty($extraFormFields)): ?>
+            <div class="section" style="margin-top:22px;">
+                <div class="section-title">Campos Adicionais</div>
+                <div class="fg" style="margin-top:0;">
+                    <?php foreach ($extraFormFields as $ef):
+                        $efName  = $ef['name'];
+                        $efLabel = e($ef['label'] ?? $efName);
+                        $efType  = $ef['type'] ?? 'text';
+                        $efReq   = !empty($ef['required']) ? 'required' : '';
+                        $efVal   = fv($efName);
+                    ?>
+                    <div class="fr">
+                        <div class="fc fc-full">
+                            <label><?= $efLabel ?><?= $efReq ? ' <span style="color:#c0392b">*</span>' : '' ?></label>
+                            <?php if ($efType === 'textarea'): ?>
+                                <textarea name="<?= $efName ?>" <?= $efReq ?>><?= $efVal ?></textarea>
+                            <?php elseif ($efType === 'select'): ?>
+                                <?php $opts = array_filter(array_map('trim', explode(',', $ef['options'] ?? ''))); ?>
+                                <select name="<?= $efName ?>" style="border:none;outline:none;font-size:13px;font-family:inherit;color:var(--text);background:transparent;width:100%;padding:2px 0;" <?= $efReq ?>>
+                                    <option value="">— Selecione —</option>
+                                    <?php foreach ($opts as $opt): ?>
+                                    <option value="<?= e($opt) ?>" <?= $efVal === e($opt) ? 'selected' : '' ?>><?= e($opt) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php elseif ($efType === 'file'): ?>
+                                <input type="file" name="<?= $efName ?>" style="font-size:12px;width:100%;color:var(--text);" <?= $efReq ?>>
+                            <?php elseif ($efType === 'date'): ?>
+                                <input type="date" name="<?= $efName ?>" value="<?= $efVal ?>" <?= $efReq ?>>
+                            <?php elseif ($efType === 'number'): ?>
+                                <input type="number" name="<?= $efName ?>" value="<?= $efVal ?>" <?= $efReq ?>>
+                            <?php elseif ($efType === 'checkbox'): ?>
+                                <div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
+                                    <input type="checkbox" name="<?= $efName ?>" value="1" <?= !empty($old[$efName]) ? 'checked' : '' ?>>
+                                    <span style="font-size:12px;color:var(--text);"><?= $efLabel ?></span>
+                                </div>
+                            <?php else: ?>
+                                <input type="text" name="<?= $efName ?>" value="<?= $efVal ?>" <?= $efReq ?>>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
-            </div><!-- /docs -->
+            </div>
+            <?php endif; ?>
 
         </div><!-- /.doc-body -->
 
@@ -1059,6 +1134,7 @@ function fCheck(string $name, string $value): string
             <p>Campos marcados com <span style="color:#c0392b">*</span> são obrigatórios.</p>
             <button type="submit" class="btn-enviar">Enviar Autorização</button>
         </div>
+
 
     </form>
     <?php endif; ?>
