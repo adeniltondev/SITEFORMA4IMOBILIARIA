@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             if (isset($_POST[$key])) {
                 $val = trim(strip_tags($_POST[$key]));
                 // Valida e-mail
-                if (in_array($key, ['email_recipient', 'smtp_from_email']) && !empty($val)) {
+                if (in_array($key, ['email_recipient', 'smtp_from_email', 'smtp_user']) && !empty($val)) {
                     if (!filter_var($val, FILTER_VALIDATE_EMAIL)) {
                         $errors[] = "O campo \"" . $key . "\" não contém um e-mail válido.";
                         continue;
@@ -234,15 +234,16 @@ require_once __DIR__ . '/layout/header.php';
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="smtp_user">Usuário SMTP (e-mail)</label>
-                        <input class="form-control" type="email" id="smtp_user" name="smtp_user"
+                        <input class="form-control" type="text" id="smtp_user" name="smtp_user"
                                value="<?= e($sysSettings['smtp_user'] ?? '') ?>"
-                               placeholder="noreply@suaimobiliaria.com.br">
+                               placeholder="noreply@suaimobiliaria.com.br"
+                               autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="smtp_pass">Senha SMTP</label>
                         <input class="form-control" type="password" id="smtp_pass" name="smtp_pass"
                                placeholder="Deixe em branco para manter a senha atual"
-                               autocomplete="new-password">
+                               autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="smtp_from_name">Nome do Remetente</label>
