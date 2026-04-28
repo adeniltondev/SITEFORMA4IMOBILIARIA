@@ -23,6 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
     if (!validateCSRF($_POST[CSRF_TOKEN_NAME] ?? '')) {
         $errors[] = 'Token de segurança inválido.';
     } else {
+        // Modo de envio de e-mail
+        $mailDriver = in_array($_POST['mail_driver'] ?? '', ['smtp', 'php_mail']) ? $_POST['mail_driver'] : 'smtp';
+        setSetting('mail_driver', $mailDriver);
+        $sysSettings['mail_driver'] = $mailDriver;
+
         // Campos de texto simples
         $textFields = [
             'app_name', 'app_url', 'primary_color',
@@ -208,8 +213,20 @@ require_once __DIR__ . '/layout/header.php';
         <!-- Coluna direita: SMTP -->
         <div>
             <div class="card">
-                <div class="card-header"><h3 class="card-title">Configuração SMTP (E-mail)</h3></div>
+                <div class="card-header"><h3 class="card-title">Configuração de E-mail</h3></div>
                 <div class="card-body">
+
+                    <!-- Modo de envio -->
+                    <div class="form-group">
+                        <label class="form-label" for="mail_driver">Modo de Envio</label>
+                        <select class="form-control" id="mail_driver" name="mail_driver" onchange="toggleSmtpFields(this.value)">
+                            <option value="smtp"     <?= ($sysSettings['mail_driver'] ?? 'smtp') === 'smtp'     ? 'selected' : '' ?>>SMTP (PHPMailer)</option>
+                            <option value="php_mail" <?= ($sysSettings['mail_driver'] ?? 'smtp') === 'php_mail' ? 'selected' : '' ?>>PHP mail() nativo</option>
+                        </select>
+                        <p class="form-text">Use <strong>PHP mail()</strong> se o servidor já está configurado com sendmail/exim. Use <strong>SMTP</strong> para autenticação externa (Gmail, Hostinger, etc).</p>
+                    </div>
+
+                    <div id="smtp_fields_wrapper">
                     <div class="form-group">
                         <label class="form-label" for="smtp_host">Servidor SMTP</label>
                         <input class="form-control" type="text" id="smtp_host" name="smtp_host"
@@ -258,6 +275,9 @@ require_once __DIR__ . '/layout/header.php';
                                placeholder="noreply@suaimobiliaria.com.br">
                         <p class="form-text">Deve ser o mesmo e-mail cadastrado no SMTP para evitar erros de autenticação.</p>
                     </div>
+
+                    </div><!-- /#smtp_fields_wrapper -->
+
                 </div>
             </div>
         </div>
@@ -285,6 +305,19 @@ if (colorPicker && colorText) {
         }
     });
 }
+
+// Mostra/esconde campos SMTP conforme o modo selecionado
+function toggleSmtpFields(driver) {
+    var wrapper = document.getElementById('smtp_fields_wrapper');
+    if (!wrapper) return;
+    wrapper.style.display = driver === 'smtp' ? '' : 'none';
+}
+
+// Aplica o estado inicial ao carregar a página
+(function () {
+    var sel = document.getElementById('mail_driver');
+    if (sel) toggleSmtpFields(sel.value);
+})();
 </script>
 
 <?php require_once __DIR__ . '/layout/footer.php'; ?>

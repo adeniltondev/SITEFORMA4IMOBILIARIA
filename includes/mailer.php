@@ -1,6 +1,6 @@
 <?php
 /**
- * Envio de e-mail via PHPMailer / SMTP
+ * Envio de e-mail via PHPMailer / SMTP ou PHP mail() nativo
  *
  * @package FORMA4
  */
@@ -36,6 +36,37 @@ function sendSubmissionEmail(
     string $pdfPath,
     array $settings = []
 ): bool {
+    $recipient  = $settings['email_recipient'] ?? '';
+    $mailDriver = $settings['mail_driver'] ?? 'smtp';
+
+    if (empty($recipient)) {
+        error_log('[FORMA4 MAIL] Destinatário não configurado. E-mail não enviado.');
+        return false;
+    }
+
+    $pdfAbsPath = PDF_PATH . DIRECTORY_SEPARATOR . basename($pdfPath);
+    if (!is_file($pdfAbsPath)) {
+        error_log('[FORMA4 MAIL] Arquivo PDF não encontrado: ' . $pdfAbsPath);
+        return false;
+    }
+
+    if ($mailDriver === 'php_mail') {
+        return _sendViaPHPMail($submission, $form, $pdfAbsPath, $settings);
+    }
+
+    return _sendViaSMTP($submission, $form, $pdfAbsPath, $settings);
+}
+
+// ============================================================
+// ENVIO VIA SMTP (PHPMailer)
+// ============================================================
+
+function _sendViaSMTP(
+    array $submission,
+    array $form,
+    string $pdfAbsPath,
+    array $settings
+): bool {
     $smtpHost    = $settings['smtp_host']      ?? '';
     $smtpPort    = (int) ($settings['smtp_port'] ?? 465);
     $smtpUser    = $settings['smtp_user']      ?? '';
@@ -45,15 +76,8 @@ function sendSubmissionEmail(
     $smtpSecure  = strtolower($settings['smtp_secure'] ?? 'ssl');
     $recipient   = $settings['email_recipient'] ?? '';
 
-    // Se não há destinatário ou credenciais, aborta silenciosamente
-    if (empty($recipient) || empty($smtpHost) || empty($smtpUser)) {
+    if (empty($smtpHost) || empty($smtpUser)) {
         error_log('[FORMA4 MAIL] Configurações SMTP incompletas. E-mail não enviado.');
-        return false;
-    }
-
-    $pdfAbsPath = PDF_PATH . DIRECTORY_SEPARATOR . basename($pdfPath);
-    if (!is_file($pdfAbsPath)) {
-        error_log('[FORMA4 MAIL] Arquivo PDF não encontrado: ' . $pdfAbsPath);
         return false;
     }
 
@@ -97,9 +121,78 @@ function sendSubmissionEmail(
         return true;
 
     } catch (PHPMailerException $e) {
-        error_log('[FORMA4 MAIL] Erro ao enviar e-mail: ' . $e->getMessage());
+        error_log('[FORMA4 MAIL] Erro SMTP: ' . $e->getMessage());
         return false;
     }
+}
+
+// ============================================================
+// ENVIO VIA PHP mail() NATIVO
+// ============================================================
+
+function _sendViaPHPMail(
+    array $submission,
+    array $form,
+    string $pdfAbsPath,
+    array $settings
+): bool {
+    $fromName  = $settings['smtp_from_name']  ?? ($settings['app_name'] ?? APP_NAME);
+    $fromEmail = $settings['smtp_from_email'] ?? 'noreply@' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $recipient = $settings['email_recipient'] ?? '';
+    $submId    = (int) $submission['id'];
+    $formTitle = $form['title'] ?? 'Formulário';
+    $submDate  = formatDate($submission['created_at'] ?? date('Y-m-d H:i:s'), true);
+
+    // Monta corpo do e-mail multipart (HTML + PDF em anexo)
+    $boundary = '----=_Part_' . md5(uniqid('', true));
+    $htmlBody = buildEmailBody($form, $submission, $settings);
+    $altBody  = "Novo envio recebido: {$formTitle} | #{$submId} | Data: {$submDate}";
+
+    // Lê e codifica o PDF em Base64
+    $pdfContent = file_get_contents($pdfAbsPath);
+    if ($pdfContent === false) {
+        error_log('[FORMA4 MAIL] Não foi possível ler o PDF para anexo.');
+        return false;
+    }
+    $pdfEncoded  = chunk_split(base64_encode($pdfContent));
+    $pdfFilename = "envio_{$submId}.pdf";
+
+    $subject = "=?UTF-8?B?" . base64_encode("[{$fromName}] Novo envio: {$formTitle} (#{$submId})") . "?=";
+
+    $headers  = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>\r\n";
+    $headers .= "Reply-To: {$fromEmail}\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+    $headers .= "X-Mailer: PHP/" . PHP_VERSION . "\r\n";
+
+    $body  = "--{$boundary}\r\n";
+    $body .= "Content-Type: multipart/alternative; boundary=\"alt_{$boundary}\"\r\n\r\n";
+
+    $body .= "--alt_{$boundary}\r\n";
+    $body .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+    $body .= chunk_split(base64_encode($altBody)) . "\r\n";
+
+    $body .= "--alt_{$boundary}\r\n";
+    $body .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $body .= "Content-Transfer-Encoding: base64\r\n\r\n";
+    $body .= chunk_split(base64_encode($htmlBody)) . "\r\n";
+
+    $body .= "--alt_{$boundary}--\r\n";
+
+    // Anexo PDF
+    $body .= "--{$boundary}\r\n";
+    $body .= "Content-Type: application/pdf; name=\"{$pdfFilename}\"\r\n";
+    $body .= "Content-Transfer-Encoding: base64\r\n";
+    $body .= "Content-Disposition: attachment; filename=\"{$pdfFilename}\"\r\n\r\n";
+    $body .= $pdfEncoded . "\r\n";
+    $body .= "--{$boundary}--";
+
+    $sent = mail($recipient, $subject, $body, $headers);
+    if (!$sent) {
+        error_log('[FORMA4 MAIL] Falha ao enviar via PHP mail(). Verifique sendmail/exim no servidor.');
+    }
+    return $sent;
 }
 
 // ============================================================
