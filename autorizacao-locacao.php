@@ -811,7 +811,7 @@ function fCheck(string $name, string $value): string
                 <?php endif; ?>
             </div>
             <div class="doc-title">
-                <h1>Autorização de Locação<br>com Exclusividade</h1>
+                <h1>Autorização de Locação</h1>
                 <p>Contrato de intermediação imobiliária — via eletrônica</p>
             </div>
         </div>
@@ -1028,14 +1028,12 @@ function fCheck(string $name, string $value): string
 
                     <!-- Parágrafo legal -->
                     <div class="legal">
-                        O CONTRATANTE acima, proprietário e legítimo possuidor de um imóvel abaixo relacionado, contrata a
-                        <strong><?= e($appName) ?></strong>, inscrita no CRECI, para promover de forma
-                        <strong>EXCLUSIVA</strong> a <strong>LOCAÇÃO</strong> do seu imóvel acima descrito, pelo prazo
-                        mínimo de
-                        <strong class="prazo-ref">( )</strong> dias, prorrogáveis automaticamente por período igual e
-                        sucessivo,
-                        até que uma das partes se manifeste em contrário, por escrito, pelo preço e condições estipuladas
-                        nesta autorização de <strong>LOCAÇÃO</strong>.
+                        O CONTRATANTE acima, proprietário(a) e legítimo(a) possuidor(a) do imóvel abaixo relacionado,
+                        contrata a <strong><?= e($appName) ?></strong>, inscrita no CRECI nº 218 PJ, para promover, de
+                        forma <strong>EXCLUSIVA</strong>, a <strong>LOCAÇÃO</strong> do seu imóvel acima descrito, pelo
+                        prazo mínimo de <strong class="prazo-ref">( )</strong> dias, prorrogável automaticamente por
+                        período igual e sucessivo, até que uma das partes se manifeste em contrário, por escrito, pelo
+                        preço e pelas condições estipuladas nesta autorização de <strong>LOCAÇÃO</strong>.
                     </div>
 
                     <!-- ═══════════════════════════════════════
