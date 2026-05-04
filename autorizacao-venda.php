@@ -318,7 +318,7 @@ function fCheck(string $name, string $value): string
         }
 
         .doc-header .logo-box {
-           background: #fff; */
+           /* background: #fff; */ */
     /* border: 1px solid #dbe8ef; */
     border-radius: 10px;
     padding: 10px 14px;
