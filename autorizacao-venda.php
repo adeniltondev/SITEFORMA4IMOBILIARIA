@@ -885,16 +885,26 @@ function fCheck(string $name, string $value): string
 
         <!-- BANNER -->
         <div class="doc-header">
-            <div class="logo-box">
-                <?php if ($logoSrc): ?>
-                    <img src="<?= e($logoSrc) ?>" alt="<?= e($appName) ?>">
-                <?php else: ?>
-                    <div class="logo-text"><?= e($appName) ?><span>Imobiliária</span></div>
-                <?php endif; ?>
+            <div class="header-ribbon">
+                <span>Documento Contratual</span>
+                <span><span class="dot"></span> Preenchimento Online <span class="dot"></span></span>
+                <span><strong><?= e($appName) ?></strong></span>
             </div>
-            <div class="doc-title">
-                <h1>Autorização de Venda<br>com Exclusividade</h1>
-                <p>Contrato de intermediação imobiliária — via eletrônica</p>
+
+            <div class="header-main">
+                <div class="logo-box">
+                    <?php if ($logoSrc): ?>
+                        <img src="<?= e($logoSrc) ?>" alt="<?= e($appName) ?>">
+                    <?php else: ?>
+                        <div class="logo-text"><?= e($appName) ?><span>Imobiliária</span></div>
+                    <?php endif; ?>
+                </div>
+                <div class="doc-title">
+                    <span class="kicker">Formulário Oficial</span>
+                    <h1>Autorização de Venda<span>Com Exclusividade</span></h1>
+                    <p>Contrato de intermediação imobiliária — via eletrônica</p>
+                    <div class="doc-meta">Validade jurídica mediante preenchimento completo e aceitação das cláusulas</div>
+                </div>
             </div>
         </div>
 
