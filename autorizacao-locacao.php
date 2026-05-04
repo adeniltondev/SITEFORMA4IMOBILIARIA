@@ -271,61 +271,81 @@ function fCheck(string $name, string $value): string
 
         /* ── Banner header ── */
         .doc-header {
-            background:
-                radial-gradient(circle at 12% 20%, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, 0) 42%),
-                linear-gradient(104deg, #0a3d52 0%, #0e6382 45%, #1994b5 100%);
-            display: flex;
-            align-items: center;
-            gap: 28px;
-            padding: 24px 36px;
+            background: linear-gradient(145deg, #f8fcff 0%, #edf5fa 100%);
             position: relative;
             overflow: hidden;
-            border-bottom: 3px solid rgba(9, 57, 77, .45);
+            border: 1px solid #d0e2ec;
+            border-bottom: 4px solid #0f6788;
         }
 
         .doc-header::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            content: none;
         }
 
         .doc-header::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 54px;
-            background: linear-gradient(to top, rgba(0, 0, 0, .14), rgba(0, 0, 0, 0));
-            pointer-events: none;
+            content: none;
+        }
+
+        .header-ribbon {
+            background: linear-gradient(90deg, #08384d 0%, #0c5b78 65%, #117398 100%);
+            color: rgba(255, 255, 255, .92);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 9px 28px;
+            font-size: 11px;
+            letter-spacing: .35px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .header-main {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 22px 30px;
+        }
+
+        .header-ribbon .dot {
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, .75);
+            border-radius: 50%;
+            margin: 0 6px;
+            vertical-align: middle;
+        }
+
+        .header-ribbon strong {
+            color: #fff;
+            font-weight: 800;
         }
 
         .doc-header .logo-box {
-            position: relative;
-            z-index: 1;
-            background: rgba(255, 255, 255, .96);
-            border: 1px solid rgba(255, 255, 255, .85);
-            border-radius: 12px;
-            padding: 12px 16px;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #dbe8ef;
+            border-radius: 10px;
+            padding: 10px 14px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 150px;
-            min-height: 108px;
-            box-shadow: 0 10px 26px rgba(8, 42, 58, .28);
+            min-width: 148px;
+            min-height: 92px;
+            box-shadow: 0 8px 20px rgba(14, 57, 78, .1);
         }
 
         .doc-header .logo-box img {
-            max-height: 74px;
+            max-height: 66px;
             max-width: 136px;
             object-fit: contain;
         }
 
         .doc-header .logo-box .logo-text {
-            color: #0c435b;
-            font-size: 19px;
+            color: #12465d;
+            font-size: 18px;
             font-weight: 800;
             letter-spacing: -0.5px;
             line-height: 1.15;
@@ -335,58 +355,65 @@ function fCheck(string $name, string $value): string
         .doc-header .logo-box .logo-text span {
             font-size: 10px;
             font-weight: 600;
-            color: #2c5c70;
+            color: #3a6474;
             display: block;
-            opacity: .86;
+            opacity: .92;
             letter-spacing: .4px;
             text-transform: uppercase;
         }
 
         .doc-header .doc-title {
-            position: relative;
-            z-index: 1;
             flex: 1;
-            text-align: center;
+            text-align: left;
         }
 
         .doc-title .kicker {
             display: inline-block;
-            padding: 5px 11px;
-            border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, .4);
-            background: rgba(255, 255, 255, .12);
-            color: rgba(255, 255, 255, .95);
+            padding: 5px 9px;
+            border-radius: 4px;
+            border: 1px solid #c8dde8;
+            background: #e8f3f9;
+            color: #0f607e;
             font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1.05px;
+            font-weight: 800;
+            letter-spacing: .75px;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 9px;
         }
 
         .doc-title h1 {
-            color: #fff;
-            font-size: 39px;
+            color: #163d4f;
+            font-size: 34px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            line-height: 1.12;
+            letter-spacing: .8px;
+            line-height: 1.08;
             text-wrap: balance;
         }
 
         .doc-title h1 span {
             display: block;
-            margin-top: 2px;
-            font-size: 17px;
+            margin-top: 5px;
+            font-size: 15px;
             font-weight: 600;
-            letter-spacing: 2.6px;
-            color: rgba(255, 255, 255, .88);
+            letter-spacing: 1.8px;
+            color: #2f6880;
         }
 
         .doc-title p {
-            color: rgba(255, 255, 255, .86);
-            font-size: 13px;
-            margin-top: 8px;
-            letter-spacing: .2px;
+            color: #4a6978;
+            font-size: 12.5px;
+            margin-top: 7px;
+            letter-spacing: .1px;
+        }
+
+        .doc-meta {
+            margin-top: 11px;
+            color: #53798b;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .45px;
+            text-transform: uppercase;
         }
 
         /* ── Form body ── */
@@ -807,19 +834,36 @@ function fCheck(string $name, string $value): string
             }
 
             .doc-header {
+                border-left: none;
+                border-right: none;
+                border-top: none;
+                border-radius: 0;
+            }
+
+            .header-ribbon {
+                padding: 8px 14px;
+                font-size: 9.8px;
+                justify-content: center;
+            }
+
+            .header-main {
                 flex-direction: column;
                 text-align: center;
-                padding: 18px;
-                gap: 16px;
+                padding: 16px 14px 18px;
+                gap: 14px;
+            }
+
+            .doc-header .doc-title {
+                text-align: center;
             }
 
             .doc-title h1 {
-                font-size: 27px;
+                font-size: 24px;
             }
 
             .doc-title h1 span {
-                font-size: 13px;
-                letter-spacing: 1.5px;
+                font-size: 12px;
+                letter-spacing: 1.2px;
             }
 
             .doc-title p {
@@ -827,8 +871,14 @@ function fCheck(string $name, string $value): string
             }
 
             .doc-header .logo-box {
-                min-width: 126px;
-                min-height: 94px;
+                min-width: 122px;
+                min-height: 86px;
+                padding: 8px 12px;
+            }
+
+            .doc-meta {
+                margin-top: 9px;
+                font-size: 10px;
             }
 
             .form-actions {
@@ -867,17 +917,26 @@ function fCheck(string $name, string $value): string
 
         <!-- ===================== HEADER BANNER ===================== -->
         <div class="doc-header">
-            <div class="logo-box">
-                <?php if ($logoSrc): ?>
-                    <img src="<?= e($logoSrc) ?>" alt="<?= e($appName) ?>">
-                <?php else: ?>
-                    <div class="logo-text"><?= e($appName) ?><span>Imobiliária</span></div>
-                <?php endif; ?>
+            <div class="header-ribbon">
+                <span>Documento Contratual</span>
+                <span><span class="dot"></span> Preenchimento Online <span class="dot"></span></span>
+                <span><strong><?= e($appName) ?></strong></span>
             </div>
-            <div class="doc-title">
-                <span class="kicker">Formulário Digital</span>
-                <h1>Autorização de Locação<span>Com Exclusividade</span></h1>
-                <p>Contrato de intermediação imobiliária — via eletrônica</p>
+
+            <div class="header-main">
+                <div class="logo-box">
+                    <?php if ($logoSrc): ?>
+                        <img src="<?= e($logoSrc) ?>" alt="<?= e($appName) ?>">
+                    <?php else: ?>
+                        <div class="logo-text"><?= e($appName) ?><span>Imobiliária</span></div>
+                    <?php endif; ?>
+                </div>
+                <div class="doc-title">
+                    <span class="kicker">Formulário Oficial</span>
+                    <h1>Autorização de Locação<span>Com Exclusividade</span></h1>
+                    <p>Contrato de intermediação imobiliária — via eletrônica</p>
+                    <div class="doc-meta">Validade jurídica mediante preenchimento completo e aceitação das cláusulas</div>
+                </div>
             </div>
         </div>
 
