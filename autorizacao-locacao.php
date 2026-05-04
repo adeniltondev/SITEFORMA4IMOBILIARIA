@@ -933,7 +933,7 @@ function fCheck(string $name, string $value): string
                 </div>
                 <div class="doc-title">
                     <span class="kicker">Formulário Oficial</span>
-                    <h1>Autorização de Locação<span>Com Exclusividade</span></h1>
+                    <h1>Autorização de Locação</h1>
                     <p>Contrato de intermediação imobiliária — via eletrônica</p>
                     <div class="doc-meta">Validade jurídica mediante preenchimento completo e aceitação das cláusulas</div>
                 </div>
