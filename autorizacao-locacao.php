@@ -323,18 +323,18 @@ function fCheck(string $name, string $value): string
         }
 
         .doc-header .logo-box {
-            position: absolute;
-            background: #fff;
-            border: 1px solid #dbe8ef;
-            border-radius: 10px;
-            padding: 10px 14px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 148px;
-            min-height: 92px;
-            box-shadow: 0 8px 20px rgba(14, 57, 78, .1);
+             position: absolute;
+    /* background: #fff; */
+    /* border: 1px solid #dbe8ef; */
+    border-radius: 10px;
+    padding: 10px 14px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 204px;
+    min-height: 208px;
+    /* box-shadow: 0 8px 20px rgba(14, 57, 78, .1);
         }
 
         .doc-header .logo-box img {
