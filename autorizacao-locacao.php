@@ -271,13 +271,16 @@ function fCheck(string $name, string $value): string
 
         /* ── Banner header ── */
         .doc-header {
-            background: linear-gradient(100deg, #0a3d52 0%, #0e6382 45%, #1994b5 100%);
+            background:
+                radial-gradient(circle at 12% 20%, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, 0) 42%),
+                linear-gradient(104deg, #0a3d52 0%, #0e6382 45%, #1994b5 100%);
             display: flex;
             align-items: center;
-            gap: 24px;
-            padding: 22px 36px;
+            gap: 28px;
+            padding: 24px 36px;
             position: relative;
             overflow: hidden;
+            border-bottom: 3px solid rgba(9, 57, 77, .45);
         }
 
         .doc-header::before {
@@ -287,57 +290,103 @@ function fCheck(string $name, string $value): string
             background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
 
+        .doc-header::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 54px;
+            background: linear-gradient(to top, rgba(0, 0, 0, .14), rgba(0, 0, 0, 0));
+            pointer-events: none;
+        }
+
         .doc-header .logo-box {
-            background: #fff;
-            border-radius: 8px;
-            padding: 10px 14px;
+            position: relative;
+            z-index: 1;
+            background: rgba(255, 255, 255, .96);
+            border: 1px solid rgba(255, 255, 255, .85);
+            border-radius: 12px;
+            padding: 12px 16px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 90px;
+            min-width: 150px;
+            min-height: 108px;
+            box-shadow: 0 10px 26px rgba(8, 42, 58, .28);
         }
 
         .doc-header .logo-box img {
-            max-height: 68px;
-            max-width: 130px;
+            max-height: 74px;
+            max-width: 136px;
             object-fit: contain;
         }
 
         .doc-header .logo-box .logo-text {
-            color: #fff;
-            font-size: 20px;
+            color: #0c435b;
+            font-size: 19px;
             font-weight: 800;
             letter-spacing: -0.5px;
-            line-height: 1.1;
+            line-height: 1.15;
             text-align: center;
         }
 
         .doc-header .logo-box .logo-text span {
-            font-size: 11px;
-            font-weight: 400;
+            font-size: 10px;
+            font-weight: 600;
+            color: #2c5c70;
             display: block;
-            opacity: .8;
+            opacity: .86;
+            letter-spacing: .4px;
+            text-transform: uppercase;
         }
 
         .doc-header .doc-title {
+            position: relative;
+            z-index: 1;
             flex: 1;
             text-align: center;
         }
 
+        .doc-title .kicker {
+            display: inline-block;
+            padding: 5px 11px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, .4);
+            background: rgba(255, 255, 255, .12);
+            color: rgba(255, 255, 255, .95);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.05px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
         .doc-title h1 {
             color: #fff;
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 39px;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            line-height: 1.3;
+            letter-spacing: 1px;
+            line-height: 1.12;
+            text-wrap: balance;
+        }
+
+        .doc-title h1 span {
+            display: block;
+            margin-top: 2px;
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: 2.6px;
+            color: rgba(255, 255, 255, .88);
         }
 
         .doc-title p {
-            color: rgba(255, 255, 255, .7);
-            font-size: 11px;
-            margin-top: 4px;
+            color: rgba(255, 255, 255, .86);
+            font-size: 13px;
+            margin-top: 8px;
+            letter-spacing: .2px;
         }
 
         /* ── Form body ── */
@@ -761,10 +810,25 @@ function fCheck(string $name, string $value): string
                 flex-direction: column;
                 text-align: center;
                 padding: 18px;
+                gap: 16px;
             }
 
             .doc-title h1 {
-                font-size: 15px;
+                font-size: 27px;
+            }
+
+            .doc-title h1 span {
+                font-size: 13px;
+                letter-spacing: 1.5px;
+            }
+
+            .doc-title p {
+                font-size: 11px;
+            }
+
+            .doc-header .logo-box {
+                min-width: 126px;
+                min-height: 94px;
             }
 
             .form-actions {
@@ -811,7 +875,8 @@ function fCheck(string $name, string $value): string
                 <?php endif; ?>
             </div>
             <div class="doc-title">
-                <h1>Autorização de Locação</h1>
+                <span class="kicker">Formulário Digital</span>
+                <h1>Autorização de Locação<span>Com Exclusividade</span></h1>
                 <p>Contrato de intermediação imobiliária — via eletrônica</p>
             </div>
         </div>
