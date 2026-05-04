@@ -364,7 +364,7 @@ function fCheck(string $name, string $value): string
 
         .doc-header .doc-title {
             flex: 1;
-            text-align: left;
+            text-align: right;
         }
 
         .doc-title .kicker {
