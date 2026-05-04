@@ -743,11 +743,11 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
         <td><span class="fl">N&ordm; Registro do Im&oacute;vel</span><span class="fv">{$registroImovel}</span></td>
         <td><span class="fl">Matr&iacute;cula IPTU</span><span class="fv">{$matriculaIptu}</span></td>
         <td><span class="fl">Energisa / UC</span><span class="fv">{$energisaUc}</span></td>
-        <td><span class="fl">Deso</span><span class="fv">{$deso}</span></td>
+        <td><span class="fl">Iguá</span><span class="fv">{$deso}</span></td>
       </tr>
       <tr>
         <td colspan="2"><span class="fl">Energisa / UC N&ordm;</span><span class="fv">{$energisaUcNum}</span></td>
-        <td colspan="2"><span class="fl">Deso Matr&iacute;cula N&ordm;</span><span class="fv">{$desoMatNum}</span></td>
+        <td colspan="2"><span class="fl">Iguá Matr&iacute;cula N&ordm;</span><span class="fv">{$desoMatNum}</span></td>
       </tr>
     </table>
   </div>
