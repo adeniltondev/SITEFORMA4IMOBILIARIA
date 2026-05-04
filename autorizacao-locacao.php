@@ -334,8 +334,8 @@ function fCheck(string $name, string $value): string
     justify-content: center;
     min-width: 204px;
     min-height: 208px;
-    /* box-shadow: 0 8px 20px rgba(14, 57, 78, .1);
-        }
+    /* box-shadow: 0 8px 20px rgba(14, 57, 78, .1); */
+    }
 
         .doc-header .logo-box img {
             max-height: 66px;
