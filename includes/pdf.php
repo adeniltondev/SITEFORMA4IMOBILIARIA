@@ -980,10 +980,20 @@ function buildDefaultHTML(array $form, array $submission, array $data, array $se
 <!DOCTYPE html><html lang="pt-BR">
 <head><meta charset="UTF-8"><style>{$css}</style></head>
 <body>
-<div class="banner">
+<div class="header-ribbon">
   <table><tr>
-    <td class="td-logo">{$logoCell}</td>
-    <td class="td-title"><h1>{$formName}</h1></td>
+    <td>Documento</td>
+    <td class="hr-center">Preenchimento Eletr&ocirc;nico</td>
+    <td class="hr-right"><strong>{$appName}</strong></td>
+  </tr></table>
+</div>
+<div class="header-main">
+  <table><tr>
+    <td class="hm-logo"><div class="logo-box-wrap">{$logoCell}</div></td>
+    <td class="hm-title">
+      <div class="hm-kicker">Formul&aacute;rio Oficial</div>
+      <div class="hm-h1">{$formName}</div>
+    </td>
   </tr></table>
 </div>
 <div class="meta-strip">
