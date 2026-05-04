@@ -266,7 +266,7 @@ function fCheck(string $name, string $value): string
             max-width: 940px;
             margin: 0 auto;
             background: #fff;
-            box-shadow: 0 4px 40px rgba(0, 0, 0, .18);
+            /* box-shadow: 0 4px 40px rgba(0, 0, 0, .18); */
         }
 
         /* ── Banner header ── */
