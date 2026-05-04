@@ -1099,7 +1099,7 @@ function fCheck(string $name, string $value): string
                                     <input type="text" name="energisa_uc" value="<?= fv('energisa_uc') ?>">
                                 </div>
                                 <div class="fc fc-md">
-                                    <label>Deso</label>
+                                    <label>Iguá</label>
                                     <input type="text" name="deso" value="<?= fv('deso') ?>">
                                 </div>
                             </div>
@@ -1109,7 +1109,7 @@ function fCheck(string $name, string $value): string
                                     <input type="text" name="energisa_uc_num" value="<?= fv('energisa_uc_num') ?>">
                                 </div>
                                 <div class="fc fc-full">
-                                    <label>Deso Matrícula Nº</label>
+                                    <label>Iguá Matrícula Nº</label>
                                     <input type="text" name="deso_matricula_num" value="<?= fv('deso_matricula_num') ?>">
                                 </div>
                             </div>
