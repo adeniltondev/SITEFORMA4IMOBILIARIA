@@ -105,15 +105,31 @@ function sharedPdfCss(string $primary = '#0b3a50'): string
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'DejaVu Sans',sans-serif; font-size:9px; color:#1e2d3a; background:#fff; line-height:1.4; }
 
-/* ── BANNER ── */
-.banner { background:{$primary}; width:100%; }
-.banner table { width:100%; border-collapse:collapse; }
-.banner .td-logo { width:130px; padding:12px 14px; vertical-align:middle; border-right:1px solid rgba(255,255,255,.15); }
-.banner .td-title { padding:12px 20px; vertical-align:middle; text-align:center; }
-.banner h1 { color:#fff; font-size:15px; font-weight:bold; text-transform:uppercase; letter-spacing:1.2px; line-height:1.35; }
+/* ── HEADER RIBBON ── */
+.header-ribbon { background:#08384d; width:100%; }
+.header-ribbon table { width:100%; border-collapse:collapse; }
+.header-ribbon td { padding:5px 14px; vertical-align:middle; color:rgba(255,255,255,.92); font-size:7px; font-weight:bold; text-transform:uppercase; letter-spacing:.4px; }
+.header-ribbon .hr-center { text-align:center; }
+.header-ribbon .hr-right { text-align:right; }
+.header-ribbon strong { color:#fff; }
+
+/* ── HEADER MAIN ── */
+.header-main { background:#edf5fa; border-bottom:3px solid #0f6788; width:100%; }
+.header-main table { width:100%; border-collapse:collapse; }
+.header-main .hm-logo { width:148px; padding:14px 16px; vertical-align:middle; }
+.header-main .hm-title { padding:14px 20px 14px 10px; vertical-align:middle; }
+.hm-kicker { font-size:7px; font-weight:bold; text-transform:uppercase; letter-spacing:.75px; color:#0f607e; background:#d6eaf5; border:1px solid #b8d9ec; padding:2px 7px; display:inline-block; margin-bottom:6px; }
+.hm-h1 { color:#163d4f; font-size:17px; font-weight:bold; text-transform:uppercase; letter-spacing:.8px; line-height:1.15; margin:0; }
+.hm-sub { color:#2f6880; font-size:9.5px; font-weight:bold; letter-spacing:1.6px; text-transform:uppercase; margin-top:3px; display:block; }
+.hm-desc { color:#4a6978; font-size:7.5px; margin-top:5px; }
+.hm-meta { color:#53798b; font-size:7px; font-weight:bold; text-transform:uppercase; letter-spacing:.4px; margin-top:5px; }
+
+/* ── LOGO BOX ── */
+.logo-box-wrap { background:#fff; border:1px solid #dbe8ef; padding:8px 10px; text-align:center; }
+.logo-box-wrap img { max-height:62px; max-width:118px; }
 .brand-box { text-align:center; }
-.brand-box .bn { color:#fff; font-size:16px; font-weight:bold; }
-.brand-box .bs { color:rgba(255,255,255,.6); font-size:7.5px; }
+.brand-box .bn { color:#12465d; font-size:14px; font-weight:bold; }
+.brand-box .bs { color:#3a6474; font-size:7px; text-transform:uppercase; letter-spacing:.4px; display:block; margin-top:2px; }
 
 /* ── META STRIP ── */
 .meta-strip { background:#1a6e8e; padding:5px 16px; }
@@ -297,12 +313,25 @@ function buildAuthorizationHTML(array $form, array $submission, array $data, arr
 </head>
 <body>
 
-<!-- ═══ BANNER ═══ -->
-<div class="banner">
+<!-- ═══ HEADER RIBBON ═══ -->
+<div class="header-ribbon">
   <table><tr>
-    <td class="td-logo">{$logoCell}</td>
-    <td class="td-title">
-      <h1>Autoriza&ccedil;&atilde;o de Venda<br>com Exclusividade</h1>
+    <td>Documento Contratual</td>
+    <td class="hr-center">Preenchimento Eletr&ocirc;nico</td>
+    <td class="hr-right"><strong>{$appName}</strong></td>
+  </tr></table>
+</div>
+
+<!-- ═══ HEADER MAIN ═══ -->
+<div class="header-main">
+  <table><tr>
+    <td class="hm-logo"><div class="logo-box-wrap">{$logoCell}</div></td>
+    <td class="hm-title">
+      <div class="hm-kicker">Formul&aacute;rio Oficial</div>
+      <div class="hm-h1">Autoriza&ccedil;&atilde;o de Venda</div>
+      <span class="hm-sub">Com Exclusividade</span>
+      <div class="hm-desc">Contrato de intermedia&ccedil;&atilde;o imobili&aacute;ria</div>
+      <div class="hm-meta">Validade jur&iacute;dica mediante preenchimento completo e aceita&ccedil;&atilde;o das cl&aacute;usulas</div>
     </td>
   </tr></table>
 </div>
@@ -634,12 +663,25 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
 </head>
 <body>
 
-<!-- ═══ BANNER ═══ -->
-<div class="banner">
+<!-- ═══ HEADER RIBBON ═══ -->
+<div class="header-ribbon">
   <table><tr>
-    <td class="td-logo">{$logoCell}</td>
-    <td class="td-title">
-      <h1>Autoriza&ccedil;&atilde;o de Loca&ccedil;&atilde;o<br>com Exclusividade</h1>
+    <td>Documento Contratual</td>
+    <td class="hr-center">Preenchimento Eletr&ocirc;nico</td>
+    <td class="hr-right"><strong>{$appName}</strong></td>
+  </tr></table>
+</div>
+
+<!-- ═══ HEADER MAIN ═══ -->
+<div class="header-main">
+  <table><tr>
+    <td class="hm-logo"><div class="logo-box-wrap">{$logoCell}</div></td>
+    <td class="hm-title">
+      <div class="hm-kicker">Formul&aacute;rio Oficial</div>
+      <div class="hm-h1">Autoriza&ccedil;&atilde;o de Loca&ccedil;&atilde;o</div>
+      <span class="hm-sub">Com Exclusividade</span>
+      <div class="hm-desc">Contrato de intermedia&ccedil;&atilde;o imobili&aacute;ria</div>
+      <div class="hm-meta">Validade jur&iacute;dica mediante preenchimento completo e aceita&ccedil;&atilde;o das cl&aacute;usulas</div>
     </td>
   </tr></table>
 </div>
@@ -871,11 +913,11 @@ function buildLogoBannerCell(string $logoPath, string $appName): string
         $mime = (new finfo(FILEINFO_MIME_TYPE))->file($logoPath);
         if (in_array($mime, ['image/jpeg','image/png','image/gif','image/webp'], true)) {
             $b64 = base64_encode(file_get_contents($logoPath));
-            return "<img src=\"data:{$mime};base64,{$b64}\" style=\"max-height:65px;max-width:120px;\">";
+            return "<img src=\"data:{$mime};base64,{$b64}\" style=\"max-height:62px;max-width:118px;\">";
         }
     }
     $safe = e($appName);
-    return "<div class=\"brand-box\"><span class=\"bn\">{$safe}</span><br><span class=\"bs\">Imobili&aacute;ria</span></div>";
+    return "<div class=\"brand-box\"><span class=\"bn\">{$safe}</span><span class=\"bs\">Imobili&aacute;ria</span></div>";
 }
 
 /**
