@@ -792,13 +792,58 @@ function fCheck(string $name, string $value): string
             line-height: 1.7;
         }
 
-        @media (max-width: 640px) {
+        /* ── RESPONSIVO ── */
+
+        /* Tablet */
+        @media (max-width: 860px) {
             body {
-                padding: 0;
+                padding: 12px 6px 48px;
+            }
+
+            .doc-wrap {
+                border-radius: 0;
+            }
+
+            .header-main {
+                padding: 18px 20px;
+                gap: 16px;
+            }
+
+            .doc-title h1 {
+                font-size: 28px;
             }
 
             .doc-body {
-                padding: 18px;
+                padding: 22px 20px 20px;
+            }
+
+            .form-actions {
+                padding: 16px 20px;
+            }
+
+            .fr {
+                flex-wrap: wrap;
+            }
+
+            .fc-xs { flex: 1 1 70px; }
+            .fc-sm { flex: 1 1 120px; }
+            .fc-md { flex: 1 1 160px; }
+            .fc-lg { flex: 1 1 200px; }
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            body {
+                padding: 0;
+                background: #fff;
+            }
+
+            .doc-wrap {
+                box-shadow: none;
+            }
+
+            .doc-body {
+                padding: 16px 14px 18px;
             }
 
             .doc-header {
@@ -809,16 +854,19 @@ function fCheck(string $name, string $value): string
             }
 
             .header-ribbon {
-                padding: 8px 14px;
-                font-size: 9.8px;
+                padding: 8px 12px;
+                font-size: 9.5px;
                 justify-content: center;
+                flex-wrap: wrap;
+                gap: 4px;
             }
 
             .header-main {
                 flex-direction: column;
+                align-items: center;
                 text-align: center;
-                padding: 16px 14px 18px;
-                gap: 14px;
+                padding: 14px 14px 16px;
+                gap: 12px;
             }
 
             .doc-header .doc-title {
@@ -826,12 +874,12 @@ function fCheck(string $name, string $value): string
             }
 
             .doc-title h1 {
-                font-size: 24px;
+                font-size: 22px;
             }
 
             .doc-title h1 span {
-                font-size: 12px;
-                letter-spacing: 1.2px;
+                font-size: 11px;
+                letter-spacing: 1px;
             }
 
             .doc-title p {
@@ -839,41 +887,139 @@ function fCheck(string $name, string $value): string
             }
 
             .doc-header .logo-box {
-                min-width: 122px;
-                min-height: 86px;
-                padding: 8px 12px;
+                min-width: 110px;
+                min-height: 80px;
+                padding: 8px 10px;
+            }
+
+            .doc-header .logo-box img {
+                max-height: 80px;
+                max-width: 140px;
             }
 
             .doc-meta {
-                margin-top: 9px;
+                margin-top: 8px;
                 font-size: 10px;
             }
 
             .form-actions {
                 flex-direction: column;
+                padding: 16px 14px;
+                text-align: center;
             }
 
             .btn-enviar {
                 width: 100%;
+                padding: 14px 20px;
             }
 
             .fr {
                 flex-direction: column;
+                border-bottom: 1px solid var(--border);
             }
 
+            .fr:last-child {
+                border-bottom: none;
+            }
+
+            .fc,
             .fc-xs,
             .fc-sm,
             .fc-md,
-            .fc-lg {
+            .fc-lg,
+            .fc-full {
                 flex: 1 1 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 7px 10px;
+            }
+
+            .fc:last-child,
+            .fc-xs:last-child,
+            .fc-sm:last-child,
+            .fc-md:last-child,
+            .fc-lg:last-child,
+            .fc-full:last-child {
+                border-bottom: none;
+            }
+
+            .fc input[type=text],
+            .fc input[type=email],
+            .fc input[type=date],
+            .fc input[type=number] {
+                font-size: 14px;
+                padding: 4px 0;
+            }
+
+            .fc textarea {
+                font-size: 13px;
+                min-height: 64px;
+            }
+
+            .check-row {
+                flex-wrap: wrap;
+                gap: 8px 14px;
+                padding: 10px 10px;
+            }
+
+            .check-row label {
+                font-size: 13px;
+            }
+
+            .exclusividade-bar {
+                flex-wrap: wrap;
+                gap: 10px 20px;
+                padding: 10px 12px;
+            }
+
+            .legal {
+                font-size: 12px;
+                padding: 12px 12px;
+                text-align: left;
+            }
+
+            .clause {
+                font-size: 12px;
             }
 
             .signatures {
                 flex-direction: column;
+                gap: 20px;
+            }
+
+            .sig-block {
+                min-width: unset;
             }
 
             .docs-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 12px;
+            }
+
+            .sign-date {
+                font-size: 12px;
+                text-align: center;
+            }
+
+            .success-wrap {
+                padding: 48px 20px;
+            }
+
+            .success-wrap h2 {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .doc-title h1 {
+                font-size: 18px;
+            }
+
+            .header-ribbon {
+                font-size: 8.5px;
             }
         }
     </style>
