@@ -931,8 +931,9 @@ function fCheck(string $name, string $value): string
             }
 
             .doc-header .logo-box {
+                position: relative;
                 min-width: 110px;
-                min-height: 80px;
+                min-height: unset;
                 padding: 8px 10px;
             }
 
