@@ -130,7 +130,7 @@ require_once __DIR__ . '/layout/header.php';
     <?= csrfField() ?>
     <input type="hidden" name="save_settings" value="1">
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;">
+    <div class="grid-2col">
 
         <!-- Coluna esquerda -->
         <div>

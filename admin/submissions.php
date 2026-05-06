@@ -102,9 +102,9 @@ require_once __DIR__ . '/layout/header.php';
                         <th>#</th>
                         <th>Formulário</th>
                         <th>Data / Hora</th>
-                        <th>IP</th>
+                        <th class="col-hide-sm">IP</th>
                         <th>PDF</th>
-                        <th>E-mail</th>
+                        <th class="col-hide-sm">E-mail</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -119,7 +119,7 @@ require_once __DIR__ . '/layout/header.php';
                             </a>
                         </td>
                         <td class="text-sm"><?= formatDate($sub['created_at'], true) ?></td>
-                        <td class="text-sm text-muted"><?= e($sub['ip_address'] ?? '—') ?></td>
+                        <td class="text-sm text-muted col-hide-sm"><?= e($sub['ip_address'] ?? '—') ?></td>
                         <td>
                             <?php if (!empty($sub['pdf_path'])): ?>
                                 <a href="<?= $appUrl ?>/admin/submission-view.php?id=<?= (int) $sub['id'] ?>&download=1"
@@ -130,7 +130,7 @@ require_once __DIR__ . '/layout/header.php';
                                 <span class="badge badge-gray">Sem PDF</span>
                             <?php endif; ?>
                         </td>
-                        <td>
+                        <td class="col-hide-sm">
                             <?php if ($sub['email_sent']): ?>
                                 <span class="badge badge-info">✓ Enviado</span>
                             <?php else: ?>

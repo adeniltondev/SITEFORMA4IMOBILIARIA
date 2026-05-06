@@ -183,7 +183,7 @@ require_once __DIR__ . '/layout/header.php';
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start;">
+<div class="grid-detail">
 
     <!-- Dados do envio -->
     <div class="card">
