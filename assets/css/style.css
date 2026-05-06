@@ -987,6 +987,42 @@ input[type="color"].form-control {
 .modal-footer  { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
 
 /* ============================================================
+   LAYOUT HELPERS (responsive grid classes)
+   ============================================================ */
+
+/* 2-column layout: main content + sidebar panel */
+.grid-main-side {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 22px;
+    align-items: start;
+}
+
+/* 2-column layout: main content + wide panel (charts) */
+.grid-main-wide {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 22px;
+    align-items: start;
+}
+
+/* 2 equal columns */
+.grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    align-items: start;
+}
+
+/* 2-column layout for settings/submission panels */
+.grid-detail {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+    align-items: start;
+}
+
+/* ============================================================
    RESPONSIVO
    ============================================================ */
 @media (max-width: 900px) {
@@ -1011,19 +1047,65 @@ input[type="color"].form-control {
     .form-grid-3 { grid-template-columns: 1fr; }
 
     .page-header { flex-direction: column; align-items: flex-start; }
+
+    /* Collapse all dashboard/admin grids to single column */
+    .grid-main-side,
+    .grid-main-wide,
+    .grid-2col,
+    .grid-detail { grid-template-columns: 1fr; }
+
+    /* Table: allow horizontal scroll on small screens */
+    .table-responsive { -webkit-overflow-scrolling: touch; }
+
+    /* Alert full-width on small screens */
+    .alert { margin: 12px 14px; }
+
+    /* Page body narrower padding */
+    .page-body { padding: 16px 14px 32px; }
+
+    /* Topbar title smaller */
+    .topbar-title { font-size: 13px; }
+
+    /* Card header wrap */
+    .card-header { flex-wrap: wrap; gap: 8px; }
+
+    /* Buttons in page-header wrap nicely */
+    .page-header { gap: 10px; }
+    .page-header > div:last-child { flex-wrap: wrap; }
+
+    /* Submissions list: IP column hide on narrow */
+    .col-hide-sm { display: none; }
 }
 
 @media (max-width: 600px) {
-    .page-body { padding: 18px 14px 32px; }
+    .page-body { padding: 14px 10px 28px; }
 
     .stats-grid { grid-template-columns: 1fr 1fr; }
 
     .public-form-header { padding: 20px; }
-    .public-form-body   { padding: 20px; }
+    .public-form-body   { padding: 18px 16px; }
 
-    .login-card { padding: 28px 20px; }
+    .login-card { padding: 28px 18px; }
 
     .add-field-grid { grid-template-columns: repeat(3, 1fr); }
+
+    /* Stack stat cards on very small screens */
+    .stats-grid { gap: 10px; }
+    .stat-card  { padding: 16px; gap: 12px; }
+    .stat-value { font-size: 22px; }
+
+    /* Charts shorter on phone */
+    .chart-wrap { height: 180px !important; }
+
+    /* Topbar: hide user name, keep avatar */
+    .user-name { display: none; }
+
+    /* Modal full-width */
+    .modal { max-width: 100%; margin: 0 8px; border-radius: var(--radius); }
+
+    /* IP list tighter */
+    .ip-list li { padding: 8px 12px; font-size: 12px; }
+    .ip-badge   { font-size: 11px; }
 }
 
 @media (max-width: 420px) {
