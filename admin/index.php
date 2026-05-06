@@ -198,7 +198,7 @@ require_once __DIR__ . '/layout/header.php';
 
 <!-- GRÁFICOS -->
 <p class="section-title">Análise de Acessos</p>
-<div style="display:grid;grid-template-columns:1fr 340px;gap:22px;margin-bottom:28px;align-items:start;">
+<div class="grid-main-wide" style="margin-bottom:28px;">
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Envios por Dia — últimos 14 dias</h2>
@@ -218,7 +218,7 @@ require_once __DIR__ . '/layout/header.php';
 
 <!-- ATIVIDADE RECENTE -->
 <p class="section-title">Atividade Recente</p>
-<div style="display:grid;grid-template-columns:1fr 320px;gap:22px;align-items:start;margin-bottom:28px;">
+<div class="grid-main-side" style="margin-bottom:28px;">
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Últimos Envios</h2>
@@ -235,7 +235,7 @@ require_once __DIR__ . '/layout/header.php';
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>#</th><th>Formulário</th><th>IP</th><th>Cidade / Estado</th><th>Data</th><th>PDF</th><th>E-mail</th><th></th>
+                            <th>#</th><th>Formulário</th><th class="col-hide-sm">IP</th><th class="col-hide-sm">Cidade / Estado</th><th>Data</th><th>PDF</th><th class="col-hide-sm">E-mail</th><th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -243,8 +243,8 @@ require_once __DIR__ . '/layout/header.php';
                         <tr>
                             <td class="text-muted text-sm"><?= (int) $sub['id'] ?></td>
                             <td><?= e($sub['form_title']) ?></td>
-                            <td class="text-sm text-muted" style="font-family:monospace;"><?= $sub['ip_address'] ? e($sub['ip_address']) : '—' ?></td>
-                            <td class="text-sm" style="white-space:nowrap;">
+                            <td class="text-sm text-muted col-hide-sm" style="font-family:monospace;"><?= $sub['ip_address'] ? e($sub['ip_address']) : '—' ?></td>
+                            <td class="text-sm col-hide-sm" style="white-space:nowrap;">
                                 <?php if ($sub['city'] || $sub['state']): ?>
                                     <?= e(implode(' / ', array_filter([$sub['city'], $sub['state']]))) ?>
                                 <?php else: ?>
@@ -253,7 +253,7 @@ require_once __DIR__ . '/layout/header.php';
                             </td>
                             <td class="text-sm text-muted"><?= formatDate($sub['created_at'], true) ?></td>
                             <td><?= $sub['pdf_path'] ? '<span class="badge badge-success">✓</span>' : '<span class="badge badge-gray">—</span>' ?></td>
-                            <td><?= $sub['email_sent'] ? '<span class="badge badge-success">✓</span>' : '<span class="badge badge-gray">—</span>' ?></td>
+                            <td class="col-hide-sm"><?= $sub['email_sent'] ? '<span class="badge badge-success">✓</span>' : '<span class="badge badge-gray">—</span>' ?></td>
                             <td><a href="<?= $appUrl ?>/admin/submission-view.php?id=<?= (int) $sub['id'] ?>" class="btn btn-ghost btn-sm">Ver</a></td>
                         </tr>
                         <?php endforeach; ?>
@@ -292,7 +292,7 @@ require_once __DIR__ . '/layout/header.php';
 
 <!-- TOP IPs + TOP CIDADES -->
 <p class="section-title">Localização dos Acessos</p>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:28px;">
+<div class="grid-2col" style="margin-bottom:28px;">
 
     <?php if (!empty($topIPs)): ?>
     <div class="card">
