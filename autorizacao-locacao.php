@@ -338,8 +338,8 @@ function fCheck(string $name, string $value): string
     }
 
         .doc-header .logo-box img {
-            max-height: 66px;
-            max-width: 136px;
+               max-height: 147px;
+    max-width: 186px;
             object-fit: contain;
         }
 
