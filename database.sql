@@ -56,6 +56,8 @@ CREATE TABLE `submissions` (
   `pdf_path`   VARCHAR(500) DEFAULT NULL,
   `email_sent` TINYINT(1)   NOT NULL DEFAULT 0,
   `ip_address` VARCHAR(45)  DEFAULT NULL,
+  `city`       VARCHAR(100) DEFAULT NULL,
+  `state`      VARCHAR(100) DEFAULT NULL,
   `user_agent` VARCHAR(500) DEFAULT NULL,
   `created_at` TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

@@ -347,6 +347,45 @@ function getClientIP(): string
 }
 
 /**
+ * Busca cidade e estado pelo IP via ip-api.com (gratuito, sem chave).
+ * Retorna ['city' => '...', 'state' => '...'] ou valores vazios em caso de falha.
+ *
+ * @param string $ip
+ * @return array{city:string,state:string}
+ */
+function getIPGeoLocation(string $ip): array
+{
+    $empty = ['city' => '', 'state' => ''];
+
+    // IPs privados / loopback não têm geolocalização
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return $empty;
+    }
+
+    $url = 'http://ip-api.com/json/' . urlencode($ip) . '?fields=city,regionName&lang=pt-BR';
+
+    $ctx = stream_context_create(['http' => [
+        'timeout'        => 3,
+        'ignore_errors'  => true,
+    ]]);
+
+    $json = @file_get_contents($url, false, $ctx);
+    if ($json === false) {
+        return $empty;
+    }
+
+    $data = json_decode($json, true);
+    if (!is_array($data)) {
+        return $empty;
+    }
+
+    return [
+        'city'  => mb_substr($data['city']       ?? '', 0, 100),
+        'state' => mb_substr($data['regionName'] ?? '', 0, 100),
+    ];
+}
+
+/**
  * Retorna o número de envios de um formulário.
  *
  * @param int $formId

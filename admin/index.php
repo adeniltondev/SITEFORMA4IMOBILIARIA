@@ -61,14 +61,26 @@ $peakHour = $peakRow ? sprintf('%02d:00–%02d:59', $peakRow['hr'], $peakRow['hr
 
 // ── Top IPs ──────────────────────────────────────────────────
 $topIPs = $db->fetchAll(
-    'SELECT ip_address, COUNT(*) AS total FROM submissions
+    'SELECT ip_address,
+            MAX(NULLIF(city,"")) AS city,
+            MAX(NULLIF(state,"")) AS state,
+            COUNT(*) AS total
+     FROM submissions
      WHERE ip_address IS NOT NULL AND ip_address != ""
      GROUP BY ip_address ORDER BY total DESC LIMIT 8'
 );
 
+// ── Top cidades ───────────────────────────────────────────────
+$topCities = $db->fetchAll(
+    'SELECT city, state, COUNT(*) AS total
+     FROM submissions
+     WHERE city IS NOT NULL AND city != ""
+     GROUP BY city, state ORDER BY total DESC LIMIT 8'
+);
+
 // ── Últimos 10 envios ────────────────────────────────────────
 $recentSubmissions = $db->fetchAll(
-    'SELECT s.id, s.created_at, s.pdf_path, s.email_sent, s.ip_address, f.title AS form_title
+    'SELECT s.id, s.created_at, s.pdf_path, s.email_sent, s.ip_address, s.city, s.state, f.title AS form_title
      FROM submissions s JOIN forms f ON f.id = s.form_id
      ORDER BY s.created_at DESC LIMIT 10'
 );
@@ -223,7 +235,7 @@ require_once __DIR__ . '/layout/header.php';
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>#</th><th>Formulário</th><th>IP</th><th>Data</th><th>PDF</th><th>E-mail</th><th></th>
+                            <th>#</th><th>Formulário</th><th>IP</th><th>Cidade / Estado</th><th>Data</th><th>PDF</th><th>E-mail</th><th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -232,6 +244,13 @@ require_once __DIR__ . '/layout/header.php';
                             <td class="text-muted text-sm"><?= (int) $sub['id'] ?></td>
                             <td><?= e($sub['form_title']) ?></td>
                             <td class="text-sm text-muted" style="font-family:monospace;"><?= $sub['ip_address'] ? e($sub['ip_address']) : '—' ?></td>
+                            <td class="text-sm" style="white-space:nowrap;">
+                                <?php if ($sub['city'] || $sub['state']): ?>
+                                    <?= e(implode(' / ', array_filter([$sub['city'], $sub['state']]))) ?>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-sm text-muted"><?= formatDate($sub['created_at'], true) ?></td>
                             <td><?= $sub['pdf_path'] ? '<span class="badge badge-success">✓</span>' : '<span class="badge badge-gray">—</span>' ?></td>
                             <td><?= $sub['email_sent'] ? '<span class="badge badge-success">✓</span>' : '<span class="badge badge-gray">—</span>' ?></td>
@@ -271,24 +290,56 @@ require_once __DIR__ . '/layout/header.php';
     </div>
 </div>
 
-<!-- TOP IPs -->
-<?php if (!empty($topIPs)): ?>
-<p class="section-title">Top Visitantes por IP</p>
-<div class="card" style="margin-bottom:28px;">
-    <div class="card-header">
-        <h2 class="card-title">IPs com mais envios</h2>
-        <span style="font-size:12px;color:var(--muted);"><?= number_format((int) $uniqueIPs) ?> IP(s) único(s) no total</span>
+<!-- TOP IPs + TOP CIDADES -->
+<p class="section-title">Localização dos Acessos</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:28px;">
+
+    <?php if (!empty($topIPs)): ?>
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Top IPs</h2>
+            <span style="font-size:12px;color:var(--muted);"><?= number_format((int) $uniqueIPs) ?> único(s)</span>
+        </div>
+        <ul class="ip-list">
+            <?php foreach ($topIPs as $ip): ?>
+            <li>
+                <div>
+                    <span class="ip-badge"><?= e($ip['ip_address']) ?></span>
+                    <?php if ($ip['city'] || $ip['state']): ?>
+                        <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+                            <?= e(implode(' / ', array_filter([$ip['city'], $ip['state']]))) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <span style="font-weight:600;font-size:13px;"><?= (int) $ip['total'] ?> envio(s)</span>
+            </li>
+            <?php endforeach; ?>
+        </ul>
     </div>
-    <ul class="ip-list">
-        <?php foreach ($topIPs as $ip): ?>
-        <li>
-            <span class="ip-badge"><?= e($ip['ip_address']) ?></span>
-            <span style="font-weight:600;font-size:13px;"><?= (int) $ip['total'] ?> envio(s)</span>
-        </li>
-        <?php endforeach; ?>
-    </ul>
+    <?php endif; ?>
+
+    <?php if (!empty($topCities)): ?>
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Top Cidades</h2>
+        </div>
+        <ul class="ip-list">
+            <?php foreach ($topCities as $c): ?>
+            <li>
+                <div>
+                    <span style="font-weight:600;font-size:13px;"><?= e($c['city']) ?></span>
+                    <?php if ($c['state']): ?>
+                        <div style="font-size:11px;color:var(--muted);"><?= e($c['state']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <span style="font-size:13px;color:var(--muted);"><?= (int) $c['total'] ?> envio(s)</span>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
+
 </div>
-<?php endif; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>

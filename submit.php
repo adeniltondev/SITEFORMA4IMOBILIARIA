@@ -119,12 +119,17 @@ if ($hasErrors) {
 // -------------------------------------------------------
 // Salva no banco
 // -------------------------------------------------------
+$clientIP = getClientIP();
+$geo      = getIPGeoLocation($clientIP);
+
 $db->query(
-    'INSERT INTO submissions (form_id, data, ip_address, user_agent) VALUES (?, ?, ?, ?)',
+    'INSERT INTO submissions (form_id, data, ip_address, city, state, user_agent) VALUES (?, ?, ?, ?, ?, ?)',
     [
         $formId,
         json_encode($submData, JSON_UNESCAPED_UNICODE),
-        getClientIP(),
+        $clientIP,
+        $geo['city'],
+        $geo['state'],
         mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
     ]
 );
