@@ -1266,7 +1266,7 @@ function fCheck(string $name, string $value): string
                         O CONTRATANTE acima, proprietário e legítimo possuidor do imóvel abaixo relacionado, contrata a
                         <strong><?= e($appName) ?></strong>, inscrita no Conselho Regional dos corretores de imóveis com o
                         nº 218 PJ,
-                        para promover de forma <strong>EXCLUSIVA</strong> a <strong>VENDA</strong> do seu imóvel acima
+                        para promover de forma a <strong>VENDA</strong> do seu imóvel acima
                         descrito,
                         pelo prazo mínimo de <strong class="prazo-ref">( )</strong> dias, prorrogável automaticamente por
                         período
