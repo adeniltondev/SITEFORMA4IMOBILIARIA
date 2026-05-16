@@ -1139,17 +1139,6 @@ function fCheck(string $name, string $value): string
                         </div>
                     <?php endif; ?>
 
-                    <!-- ═══ COM EXCLUSIVIDADE? ═══ -->
-                    <div class="exclusividade-bar" style="margin-bottom:22px;">
-                        <span class="exc-label">&#9733; Com Exclusividade?</span>
-                        <label>
-                            <input type="radio" name="com_exclusividade" value="Sim" <?= fRadio('com_exclusividade', 'Sim') ?>> Sim
-                        </label>
-                        <label>
-                            <input type="radio" name="com_exclusividade" value="Não" <?= fRadio('com_exclusividade', 'Não') ?>> Não
-                        </label>
-                    </div>
-
                     <!-- ═══════════════════════════════════════
                  DADOS DO CONTRATANTE
             ═══════════════════════════════════════ -->
