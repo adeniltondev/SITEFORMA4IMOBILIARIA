@@ -628,6 +628,7 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
     $valorIptuAnual      = $d('valor_iptu_anual', '—');
     $comissao            = $d('porcentagem_comissao', '—');
     $prazo               = $d('prazo_exclusividade', '—');
+    $prazoMinimo         = $d('prazo_minimo', '___');
 
     // ── Assinaturas
     $nomeCorretor = $d('nome_corretor');
