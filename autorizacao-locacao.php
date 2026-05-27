@@ -115,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$success) {
             'valor_iptu_anual',
             'porcentagem_comissao',
             'prazo_exclusividade',
+            'prazo_minimo',
             // Assinaturas
             'nome_corretor',
             'testemunha_1_nome',
@@ -1317,7 +1318,7 @@ function fCheck(string $name, string $value): string
                         O CONTRATANTE acima, proprietário(a) e legítimo(a) possuidor(a) do imóvel abaixo relacionado,
                         contrata a <strong><?= e($appName) ?></strong>, inscrita no CRECI nº 218 PJ, para promover, de
                         forma <strong>EXCLUSIVA</strong>, a <strong>LOCAÇÃO</strong> do seu imóvel acima descrito, pelo
-                        prazo mínimo de <strong class="prazo-ref">( )</strong> dias, prorrogável automaticamente por
+                        prazo mínimo de <input type="number" name="prazo_minimo" value="<?= fv('prazo_minimo') ?>" min="1" placeholder="  " style="width:56px;display:inline-block;padding:1px 4px;font-size:inherit;font-weight:700;color:inherit;border:none;border-bottom:2px solid #b48a00;background:transparent;text-align:center;-moz-appearance:textfield;" title="Informe o prazo mínimo em dias"> dias, prorrogável automaticamente por
                         período igual e sucessivo, até que uma das partes se manifeste em contrário, por escrito, pelo
                         preço e pelas condições estipuladas nesta autorização de <strong>LOCAÇÃO</strong>.
                     </div>
