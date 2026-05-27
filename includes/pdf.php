@@ -761,7 +761,7 @@ function buildLocacaoHTML(array $form, array $submission, array $data, array $se
     O CONTRATANTE acima, propriet&aacute;rio(a) e leg&iacute;timo(a) possuidor(a) do im&oacute;vel abaixo relacionado,
     contrata a <strong>{$appName}</strong>, inscrita no CRECI n&ordm; 218 PJ, para promover, de forma
     <strong>EXCLUSIVA</strong>, a <strong>LOCA&Ccedil;&Atilde;O</strong> do seu im&oacute;vel acima descrito, pelo prazo
-    m&iacute;nimo de <strong>({$prazo}) dias</strong>, prorrog&aacute;vel automaticamente por per&iacute;odo igual e
+    m&iacute;nimo de <strong>({$prazoMinimo}) dias</strong>, prorrog&aacute;vel automaticamente por per&iacute;odo igual e
     sucessivo, at&eacute; que uma das partes se manifeste em contr&aacute;rio, por escrito, pelo pre&ccedil;o e
     pelas condi&ccedil;&otilde;es estipuladas nesta autoriza&ccedil;&atilde;o de <strong>LOCA&Ccedil;&Atilde;O</strong>.
   </div>
