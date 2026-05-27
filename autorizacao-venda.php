@@ -1452,7 +1452,7 @@ function fCheck(string $name, string $value): string
                                         value="<?= fv('porcentagem_comissao') ?>" min="0" max="100" step="0.1"
                                         placeholder="Ex: 6">
                                 </div>
-                                <div class="fc fc-sm">
+                                <div class="fc fc-md">
                                     <label>Prazo Exclusividade (dias)</label>
                                     <input type="number" name="prazo_exclusividade" value="<?= fv('prazo_exclusividade') ?>"
                                         min="0" placeholder="Ex: 90">
