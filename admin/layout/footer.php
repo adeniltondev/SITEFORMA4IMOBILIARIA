@@ -11,13 +11,10 @@
     if (!btn || !dropdown) return;
 
     function positionDropdown() {
-        var r = btn.getBoundingClientRect();
-        var w = Math.max(r.width, 240);
-        dropdown.style.left  = r.left + 'px';
-        dropdown.style.width = w + 'px';
-        /* Abre para cima: posiciona acima do botão */
+        dropdown.style.left   = '10px';
+        dropdown.style.width  = '276px';
         dropdown.style.top    = 'auto';
-        dropdown.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+        dropdown.style.bottom = '122.8px';
     }
 
     function openDropdown() {
@@ -44,9 +41,6 @@
         }
     });
 
-    window.addEventListener('resize', function () {
-        if (dropdown.classList.contains('open')) positionDropdown();
-    });
 })();
 
 function copyShareLink(url, el) {
