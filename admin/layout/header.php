@@ -92,9 +92,10 @@ $flash = getFlash();
             background: #fff;
             border: 1px solid var(--border, #e2e8f0);
             border-radius: 10px;
-            padding: 12px 12px 8px;
+            padding: 14px 14px 10px;
             box-shadow: 0 -4px 24px rgba(0,0,0,.12);
-            width: 220px;
+            min-width: 240px;
+            box-sizing: border-box;
             top: auto;
             bottom: auto;
         }

@@ -12,7 +12,7 @@
 
     function positionDropdown() {
         var r = btn.getBoundingClientRect();
-        var w = Math.max(r.width, 220);
+        var w = Math.max(r.width, 240);
         dropdown.style.left  = r.left + 'px';
         dropdown.style.width = w + 'px';
         /* Abre para cima: posiciona acima do botão */
