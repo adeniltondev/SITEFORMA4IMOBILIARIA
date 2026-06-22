@@ -93,8 +93,10 @@ $flash = getFlash();
             border: 1px solid var(--border, #e2e8f0);
             border-radius: 10px;
             padding: 12px 12px 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+            box-shadow: 0 -4px 24px rgba(0,0,0,.12);
             width: 220px;
+            top: auto;
+            bottom: auto;
         }
         .share-dropdown.open { display: block; }
 

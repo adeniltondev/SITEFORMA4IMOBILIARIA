@@ -12,14 +12,17 @@
 
     function positionDropdown() {
         var r = btn.getBoundingClientRect();
-        dropdown.style.left   = r.left + 'px';
-        dropdown.style.top    = (r.bottom + 6) + 'px';
-        dropdown.style.width  = Math.max(r.width, 220) + 'px';
+        var w = Math.max(r.width, 220);
+        dropdown.style.left  = r.left + 'px';
+        dropdown.style.width = w + 'px';
+        /* Abre para cima: posiciona acima do botão */
+        dropdown.style.top    = 'auto';
+        dropdown.style.bottom = (window.innerHeight - r.top + 6) + 'px';
     }
 
     function openDropdown() {
-        positionDropdown();
         dropdown.classList.add('open');
+        positionDropdown();
         btn.classList.add('open');
         btn.setAttribute('aria-expanded', 'true');
     }
