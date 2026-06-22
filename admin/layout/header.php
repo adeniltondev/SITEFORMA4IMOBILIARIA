@@ -67,63 +67,67 @@ $flash = getFlash();
             white-space: nowrap;
         }
 
-        /* ---- Share dropdown ---- */
-        .share-nav-wrapper { position: relative; margin-bottom: 2px; }
+        /* ---- Share ---- */
+        .share-section {
+            padding: 0 10px 6px;
+            border-top: 1px solid var(--border, #e2e8f0);
+        }
 
         .share-toggle-btn {
             width: 100%;
             border: none;
             background: none;
             text-align: left;
+            margin-top: 6px;
         }
         .share-toggle-btn:hover { background: var(--sidebar-hover); color: var(--primary); }
-        .share-toggle-btn.open { background: var(--sidebar-hover); color: var(--primary); }
+        .share-toggle-btn.open  { background: var(--sidebar-hover); color: var(--primary); }
         .share-toggle-btn.open .share-chevron { transform: rotate(180deg); }
 
+        /* Dropdown renderizado como position:fixed via JS — sempre na frente */
         .share-dropdown {
             display: none;
-            background: #f8fafc;
+            position: fixed;
+            z-index: 9999;
+            background: #fff;
             border: 1px solid var(--border, #e2e8f0);
-            border-radius: 8px;
-            margin: 4px 4px 6px;
-            padding: 10px 10px 6px;
-            overflow: hidden;
+            border-radius: 10px;
+            padding: 12px 12px 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+            width: 220px;
         }
         .share-dropdown.open { display: block; }
 
-        .share-group { margin-bottom: 10px; }
+        .share-group { margin-bottom: 12px; }
         .share-group-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: .05em;
-            margin: 0 0 6px 0;
+            letter-spacing: .06em;
+            margin: 0 0 7px 0;
         }
 
-        .share-actions {
-            display: flex;
-            gap: 6px;
-        }
+        .share-actions { display: flex; gap: 5px; }
 
         .share-btn {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 6px 10px;
+            gap: 4px;
+            padding: 6px 8px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 500;
             text-decoration: none;
             cursor: pointer;
             border: none;
-            transition: filter .15s, opacity .15s;
+            transition: filter .15s;
             flex: 1;
             justify-content: center;
             white-space: nowrap;
         }
-        .share-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
-        .share-btn:hover { filter: brightness(.9); }
+        .share-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+        .share-btn:hover { filter: brightness(.88); }
 
         .share-btn--whatsapp { background: #25d366; color: #fff; }
         .share-btn--email    { background: #3b82f6; color: #fff; }
@@ -167,61 +171,63 @@ $flash = getFlash();
             Configurações
         </a>
 
-        <!-- Compartilhar -->
-        <div class="share-nav-wrapper" id="shareNavWrapper">
-            <button type="button" class="nav-item share-toggle-btn" id="shareToggleBtn" aria-expanded="false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                Compartilhar
-                <svg class="share-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;width:14px;height:14px;transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
+    </nav>
 
-            <div class="share-dropdown" id="shareDropdown">
-                <!-- Autorização de Venda -->
-                <div class="share-group">
-                    <p class="share-group-label">Autorização de Venda</p>
-                    <div class="share-actions">
-                        <a href="https://wa.me/?text=<?= urlencode('Autorização de Venda: https://autorizacao.a4imobiliaria.com.br/autorizacao-venda.php') ?>"
-                           target="_blank" rel="noopener" class="share-btn share-btn--whatsapp" title="WhatsApp">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            WhatsApp
-                        </a>
-                        <a href="mailto:?subject=<?= urlencode('Autorização de Venda') ?>&body=<?= urlencode('Acesse o formulário de Autorização de Venda: https://autorizacao.a4imobiliaria.com.br/autorizacao-venda.php') ?>"
-                           class="share-btn share-btn--email" title="E-mail">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                            E-mail
-                        </a>
-                        <button type="button" class="share-btn share-btn--copy" title="Copiar link"
-                                onclick="copyShareLink('https://autorizacao.a4imobiliaria.com.br/autorizacao-venda.php', this)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                            Copiar
-                        </button>
-                    </div>
-                </div>
+    <!-- Compartilhar — fora do overflow-y:auto da nav -->
+    <div class="share-section" id="shareNavWrapper">
+        <button type="button" class="nav-item share-toggle-btn" id="shareToggleBtn" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Compartilhar
+            <svg class="share-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;width:14px;height:14px;transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+    </div>
 
-                <!-- Autorização de Locação -->
-                <div class="share-group">
-                    <p class="share-group-label">Autorização de Locação</p>
-                    <div class="share-actions">
-                        <a href="https://wa.me/?text=<?= urlencode('Autorização de Locação: https://autorizacao.a4imobiliaria.com.br/autorizacao-locacao.php') ?>"
-                           target="_blank" rel="noopener" class="share-btn share-btn--whatsapp" title="WhatsApp">
-                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            WhatsApp
-                        </a>
-                        <a href="mailto:?subject=<?= urlencode('Autorização de Locação') ?>&body=<?= urlencode('Acesse o formulário de Autorização de Locação: https://autorizacao.a4imobiliaria.com.br/autorizacao-locacao.php') ?>"
-                           class="share-btn share-btn--email" title="E-mail">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                            E-mail
-                        </a>
-                        <button type="button" class="share-btn share-btn--copy" title="Copiar link"
-                                onclick="copyShareLink('https://autorizacao.a4imobiliaria.com.br/autorizacao-locacao.php', this)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                            Copiar
-                        </button>
-                    </div>
-                </div>
+    <!-- Dropdown fixo — renderizado fora de qualquer overflow -->
+    <div class="share-dropdown" id="shareDropdown" role="dialog" aria-label="Compartilhar formulários">
+        <!-- Autorização de Venda -->
+        <div class="share-group">
+            <p class="share-group-label">Autorização de Venda</p>
+            <div class="share-actions">
+                <a href="https://wa.me/?text=<?= urlencode('Autorização de Venda: https://autorizacao.a4imobiliaria.com.br/autorizacao-venda.php') ?>"
+                   target="_blank" rel="noopener" class="share-btn share-btn--whatsapp" title="WhatsApp">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    WhatsApp
+                </a>
+                <a href="mailto:?subject=<?= urlencode('Autorização de Venda') ?>&body=<?= urlencode('Acesse o formulário de Autorização de Venda: https://autorizacao.a4imobiliaria.com.br/autorizacao-venda.php') ?>"
+                   class="share-btn share-btn--email" title="E-mail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    E-mail
+                </a>
+                <button type="button" class="share-btn share-btn--copy" title="Copiar link"
+                        onclick="copyShareLink('https://autorizacao.a4imobiliaria.com.br/autorizacao-venda.php', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Copiar
+                </button>
             </div>
         </div>
-    </nav>
+
+        <!-- Autorização de Locação -->
+        <div class="share-group">
+            <p class="share-group-label">Autorização de Locação</p>
+            <div class="share-actions">
+                <a href="https://wa.me/?text=<?= urlencode('Autorização de Locação: https://autorizacao.a4imobiliaria.com.br/autorizacao-locacao.php') ?>"
+                   target="_blank" rel="noopener" class="share-btn share-btn--whatsapp" title="WhatsApp">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    WhatsApp
+                </a>
+                <a href="mailto:?subject=<?= urlencode('Autorização de Locação') ?>&body=<?= urlencode('Acesse o formulário de Autorização de Locação: https://autorizacao.a4imobiliaria.com.br/autorizacao-locacao.php') ?>"
+                   class="share-btn share-btn--email" title="E-mail">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    E-mail
+                </a>
+                <button type="button" class="share-btn share-btn--copy" title="Copiar link"
+                        onclick="copyShareLink('https://autorizacao.a4imobiliaria.com.br/autorizacao-locacao.php', this)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    Copiar
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="sidebar-footer">
         <a href="<?= $appUrl ?>/logout.php" class="nav-item nav-logout">
